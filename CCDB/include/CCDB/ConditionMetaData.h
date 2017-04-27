@@ -6,7 +6,7 @@
 #include "Rtypes.h"   // for UInt_t, ConditionMetaData::Class, Bool_t, etc
 #include "TString.h"  // for TString
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 //  Set of data describing the object  				   //
 //  but not used to identify the object 			   //
@@ -20,7 +20,7 @@ class ConditionMetaData : public TObject
     ConditionMetaData(const char *responsible, UInt_t beamPeriod = 0, const char *alirootVersion = "",
                       const char *comment = "");
 
-    virtual ~ConditionMetaData();
+    ~ConditionMetaData() override;
 
     void setObjectClassName(const char *name)
     {
@@ -92,7 +92,7 @@ class ConditionMetaData : public TObject
 
     TMap mProperties; // list of object specific properties
 
-  ClassDef(ConditionMetaData, 1)
+  ClassDefOverride(ConditionMetaData, 1)
 };
 }
 }

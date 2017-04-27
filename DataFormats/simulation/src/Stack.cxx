@@ -2,13 +2,13 @@
 /// \brief Implementation of the Stack class
 /// \author M. Al-Turany - June 2014
 
-#include "include/SimulationDataFormat/Stack.h"
-#include "include/SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/Stack.h"
+#include "SimulationDataFormat/MCTrack.h"
 
 #include "FairDetector.h"     // for FairDetector
 #include "FairLogger.h"       // for MESSAGE_ORIGIN, FairLogger
-#include "FairMCPoint.h"      // for FairMCPoint
-#include "FairRootManager.h"  // for FairRootManager
+#include "SimulationDataFormat/BaseHits.h"
+#include "FairGenericRootManager.h"  // for FairGenericRootManager
 
 #include "TClonesArray.h"     // for TClonesArray
 #include "TIterator.h"        // for TIterator
@@ -16,12 +16,12 @@
 #include "TParticle.h"        // for TParticle
 #include "TRefArray.h"        // for TRefArray
 
-#include <stddef.h>           // for NULL
+#include <cstddef>           // for NULL
 
 using std::cout;
 using std::endl;
 using std::pair;
-using namespace AliceO2::Data;
+using namespace o2::Data;
 
 Stack::Stack(Int_t size)
   : FairGenericStack(),
@@ -44,13 +44,14 @@ Stack::Stack(Int_t size)
     mEnergyCut(0.),
     mLogger(FairLogger::GetLogger())
 {
+  // LOG(INFO) << "Stack::Stack(Int_t) " << this << " mTracks " << mTracks << std::endl;
 }
 
 Stack::Stack(const Stack &rhs)
   : FairGenericStack(rhs),
     mStack(),
-    mParticles(0),
-    mTracks(0),
+    mParticles(nullptr),
+    mTracks(nullptr),
     mStoreMap(),
     mStoreIterator(),
     mIndexMap(),
@@ -65,10 +66,12 @@ Stack::Stack(const Stack &rhs)
     mStoreSecondaries(rhs.mStoreSecondaries),
     mMinPoints(rhs.mMinPoints),
     mEnergyCut(rhs.mEnergyCut),
-    mLogger(0)
+    mLogger(FairLogger::GetLogger())
 {
   mParticles = new TClonesArray("TParticle", rhs.mParticles->GetSize());
   mTracks = new TClonesArray("MCTrack", rhs.mTracks->GetSize());
+
+  // LOG(INFO) << "Stack::Stack(rhs) " << this << " mTracks " << mTracks << std::endl;
 }
 
 Stack::~Stack()
@@ -103,7 +106,7 @@ Stack &Stack::operator=(const Stack &rhs)
   mStoreSecondaries = rhs.mStoreSecondaries;
   mMinPoints = rhs.mMinPoints;
   mEnergyCut = rhs.mEnergyCut;
-  mLogger = 0;
+  mLogger = nullptr;
 
   return *this;
 }
@@ -129,7 +132,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   Int_t nPoints = 0;
   Int_t daughter1Id = -1;
   Int_t daughter2Id = -1;
-  TParticle *particle = new(partArray[mNumberOfEntriesInParticles++])
+  auto *particle = new(partArray[mNumberOfEntriesInParticles++])
     TParticle(pdgCode, trackId, parentId, nPoints, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   particle->SetPolarisation(polx, poly, polz);
   particle->SetWeight(weight);
@@ -155,7 +158,7 @@ TParticle *Stack::PopNextTrack(Int_t &iTrack)
   // If end of stack: Return empty pointer
   if (mStack.empty()) {
     iTrack = -1;
-    return NULL;
+    return nullptr;
   }
 
   // If not, get next particle from stack
@@ -164,7 +167,7 @@ TParticle *Stack::PopNextTrack(Int_t &iTrack)
 
   if (!thisParticle) {
     iTrack = 0;
-    return NULL;
+    return nullptr;
   }
 
   mIndexOfCurrentTrack = thisParticle->GetStatusCode();
@@ -215,7 +218,7 @@ TParticle *Stack::GetCurrentTrack() const
 void Stack::AddParticle(TParticle *oldPart)
 {
   TClonesArray &array = *mParticles;
-  TParticle *newPart = new(array[mIndex]) TParticle(*oldPart);
+  auto *newPart = new(array[mIndex]) TParticle(*oldPart);
   newPart->SetWeight(oldPart->GetWeight());
   newPart->SetUniqueID(oldPart->GetUniqueID());
   mIndex++;
@@ -249,7 +252,7 @@ void Stack::FillTrackArray()
     Bool_t store = (*mStoreIterator).second;
 
     if (store) {
-      MCTrack *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
+      auto *track = new((*mTracks)[mNumberOfEntriesInTracks]) MCTrack(GetParticle(iPart));
       mIndexMap[iPart] = mNumberOfEntriesInTracks;
       // Set the number of points in the detectors for this track
       for (Int_t iDet = kAliIts; iDet < kSTOPHERE; iDet++) {
@@ -292,7 +295,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     track->SetMotherTrackId((*mIndexIterator).second);
   }
 
-  if (fDetList == 0) {
+  if (fDetList == nullptr) {
     // Now iterate through all active detectors
     fDetIter = detList->MakeIterator();
     fDetIter->Reset();
@@ -300,7 +303,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
     fDetIter->Reset();
   }
 
-  FairDetector *det = NULL;
+  FairDetector *det = nullptr;
   while ((det = (FairDetector *) fDetIter->Next())) {
 
     // Get hit collections from detector
@@ -312,7 +315,7 @@ void Stack::UpdateTrackIndex(TRefArray *detList)
 
       // Update track index for all MCPoints in the collection
       for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-        FairMCPoint *point = (FairMCPoint *) hitArray->At(iPoint);
+        auto *point = (o2::BaseHit *) hitArray->UncheckedAt(iPoint);
         Int_t iTrack = point->GetTrackID();
 
         mIndexIterator = mIndexMap.find(iTrack);
@@ -350,7 +353,10 @@ void Stack::Reset()
 
 void Stack::Register()
 {
-  FairRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
+  // LOG(INFO) << this << " register in "
+  //   << FairGenericRootManager::Instance() << " mTracks: " <<  mTracks << std::endl;
+
+  FairGenericRootManager::Instance()->Register("MCTrack", "Stack", mTracks, kTRUE);
 }
 
 void Stack::Print(Int_t iVerbose) const
@@ -363,6 +369,13 @@ void Stack::Print(Int_t iVerbose) const
       ((MCTrack *) mTracks->At(iTrack))->Print(iTrack);
     }
   }
+}
+
+void Stack::Print(Option_t* option) const
+{
+  Int_t verbose = 0;
+  if ( option ) verbose = 1;
+  Print(verbose);
 }
 
 void Stack::AddPoint(DetectorId detId)
@@ -417,6 +430,8 @@ void Stack::SelectTracks()
 
   // Clear storage map
   mStoreMap.clear();
+
+  // LOG(INFO) << "mPointsMap.size(): " << mPointsMap.size() << std::endl;
 
   // Check particles in the fParticle array
   for (Int_t i = 0; i < mNumberOfEntriesInParticles; i++) {
@@ -477,7 +492,7 @@ void Stack::SelectTracks()
 
 FairGenericStack *Stack::CloneStack() const
 {
-  return new AliceO2::Data::Stack(*this);
+  return new o2::Data::Stack(*this);
 }
 
-ClassImp(AliceO2::Data::Stack)
+ClassImp(o2::Data::Stack)

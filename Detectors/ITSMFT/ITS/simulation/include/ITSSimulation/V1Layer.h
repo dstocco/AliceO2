@@ -17,7 +17,7 @@ class TGeoCombiTrans;
 
 class TGeoVolume;  // lines 15-15
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
@@ -51,7 +51,7 @@ class V1Layer : public V11Geometry
     V1Layer &operator=(const V1Layer &source);
 
     /// Default destructor
-    virtual ~V1Layer();
+    ~V1Layer() override;
 
     Bool_t isTurbo() const
     {
@@ -187,7 +187,7 @@ class V1Layer : public V11Geometry
       mBuildLevel = buildLevel;
     }
 
-    void setStaveModel(AliceO2::ITS::Detector::Model model)
+    void setStaveModel(o2::ITS::Detector::Model model)
     {
       mStaveModel = model;
     }
@@ -397,7 +397,7 @@ class V1Layer : public V11Geometry
     static const Double_t sOBSFBotBeamAngle;    ///< OB SF bottom beam angle
     static const Double_t sOBSFrameBeamSidePhi; ///< OB SF side beam angle
 
-  ClassDef(V1Layer, 0) // ITS v1 geometry
+  ClassDefOverride(V1Layer, 0) // ITS v1 geometry
 };
 }
 }

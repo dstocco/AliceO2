@@ -6,18 +6,20 @@
 #ifndef ALICEO2_MFT_DETECTOR_H_
 #define ALICEO2_MFT_DETECTOR_H_
 
+#include "TLorentzVector.h"
+
 #include "DetectorsBase/Detector.h"
 
 class TClonesArray;
 class TVector3;
 
-namespace AliceO2 { namespace MFT { class GeometryTGeo; } }
-namespace AliceO2 { namespace MFT { class Point; } }
+namespace o2 { namespace MFT { class GeometryTGeo; } }
+namespace o2 { namespace ITSMFT { class Point; } }
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
-class Detector : public AliceO2::Base::Detector {
+class Detector : public o2::Base::Detector {
 
 public:
 
@@ -25,70 +27,80 @@ public:
   Detector();
 
   /// Default destructor
-  virtual ~Detector();
-
-  Int_t IsVersion() const { return fVersion; }
+  ~Detector() override;
 
   /// Initialization of the detector is done here
-  virtual void Initialize();
+  void Initialize() override;
 
   /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-  virtual Bool_t ProcessHits(FairVolume* v = 0);
+  Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
   /// Has to be called after each event to reset the containers
-  virtual void Reset();
+  void Reset() override;
 
   /// Registers the produced collections in FAIRRootManager
-  virtual void Register(); 
+  void Register() override; 
 
   /// Gets the produced collections
-  virtual TClonesArray* GetCollection(Int_t iColl) const;
+  TClonesArray* GetCollection(Int_t iColl) const override;
 
-  virtual void EndOfEvent();
+  void EndOfEvent() override;
 
-  virtual void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) {;}
-  virtual void FinishPrimary() {;}
-  virtual void FinishRun() {;}
-  virtual void BeginPrimary() {;}
-  virtual void PostTrack() {;}
-  virtual void PreTrack() {;}
-  virtual void BeginEvent() {;}
-  virtual void SetSpecialPhysicsCuts() {;}
+  void CopyClones(TClonesArray* cl1, TClonesArray* cl2, Int_t offset) override {;}
+  void FinishPrimary() override {;}
+  void FinishRun() override {;}
+  void BeginPrimary() override {;}
+  void PostTrack() override {;}
+  void PreTrack() override {;}
+  void BeginEvent() override {;}
+  void SetSpecialPhysicsCuts() override {;}
 
-  GeometryTGeo* GetGeometryTGeo() const { return fGeometryTGeo; }
+  void ConstructGeometry() override;  // inherited from FairModule
+
+  //
+
+  Int_t isVersion() const { return mVersion; }
+
+  GeometryTGeo* getGeometryTGeo() const { return mGeometryTGeo; }
   
   /// Creating materials for the detector
 
-  void CreateMaterials();
+  void createMaterials();
 
-  enum EMedia{kZero,kAir, kVacuum, kSi, kReadout, kSupport, kCarbon, kBe, kAlu, kWater, kSiO2, kInox, kKapton, kEpoxy, kCarbonFiber, kCarbonEpoxy, kRohacell, kPolyimide, kPEEK, kFR4, kCu, kX7R, kX7Rw, kCarbonFleece, kSE4445};  // media IDs used in CreateMaterials
+  enum EMedia{Zero, Air, Vacuum, Si, Readout, Support, Carbon, Be, Alu, Water, SiO2, Inox, Kapton, Epoxy, CarbonFiber, CarbonEpoxy, Rohacell, Polyimide, PEEK, FR4, Cu, X7R, X7Rw, CarbonFleece, SE4445};  // media IDs used in CreateMaterials
 
-  void SetDensitySupportOverSi(Double_t density) { 
-    if (density > 1e-6) fDensitySupportOverSi = density; 
-    else fDensitySupportOverSi = 1e-6; 
+  void setDensitySupportOverSi(Double_t density) { 
+    if (density > 1e-6) mDensitySupportOverSi = density; 
+    else mDensitySupportOverSi = 1e-6; 
   }
 
-  /// Constructing the geometry
-
-  void ConstructGeometry();  // inherited from FairModule
-  void CreateGeometry();
-  void DefineSensitiveVolumes();
+  void createGeometry();
+  void defineSensitiveVolumes();
 
 protected:
 
-  Int_t fVersion;                  //
-  GeometryTGeo *fGeometryTGeo;     //!
-  Double_t fDensitySupportOverSi;  //
-  TClonesArray *fPoints;           //!
+  Int_t mVersion;                  //
+  GeometryTGeo *mGeometryTGeo;     //!
+  Double_t mDensitySupportOverSi;  //
+  TClonesArray *mPoints;           //!
  
 private:
 
   Detector(const Detector&);
   Detector& operator=(const Detector&);
 
-  Point* AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss);
+  o2::ITSMFT::Point* addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus);
 
-  ClassDef(Detector,1)
+  /// this is transient data about track passing the sensor
+  struct TrackData {                  // this is transient 
+    bool  mHitStarted;                //! hit creation started
+    unsigned char mTrkStatusStart;    //! track status flag
+    TLorentzVector mPositionStart;    //! position at entrance
+    TLorentzVector mMomentumStart;    //! momentum
+    double mEnergyLoss;               //! energy loss
+  } mTrackData;                       //! 
+
+  ClassDefOverride(Detector,1)
 
 };
 

@@ -4,7 +4,7 @@
 #include "MFTReconstruction/FindTracks.h"
 #include "MFTReconstruction/devices/TaskProcessor.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 using HitFinder   = TaskProcessor<FindHits>;
 using TrackFinder = TaskProcessor<FindTracks>;
@@ -39,7 +39,7 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
     return new TrackFinder();
   }
 
-  return 0;
+  return nullptr;
   
 }
 

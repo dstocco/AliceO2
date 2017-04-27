@@ -18,11 +18,11 @@
 #ifndef O2DEVICE_H_
 #define O2DEVICE_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 #include "Headers/DataHeader.h"
 #include <stdexcept>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Base {
 
 /// just a typedef to express the fact that it is not just a FairMQParts vector,
@@ -33,25 +33,25 @@ class O2Device : public FairMQDevice
 {
 public:
   using FairMQDevice::FairMQDevice;
-  virtual ~O2Device() {}
+  ~O2Device() override = default;
 
   /// Here is how to add an annotated data part (with header);
   /// @param[in,out] parts is a reference to the message;
-  /// @param[] incomingBlock header block must be MOVED in (rvalue ref)
+  /// @param[] incomingStack header block must be MOVED in (rvalue ref)
   /// @param[] dataMessage the data message must be MOVED in (unique_ptr by value)
   bool AddMessage(O2Message& parts,
-                  AliceO2::Header::Block&& incomingBlock,
+                  o2::Header::Stack&& incomingStack,
                   FairMQMessagePtr incomingDataMessage) {
 
     //we have to move the incoming data
-    AliceO2::Header::Block headerBlock{std::move(incomingBlock)};
+    o2::Header::Stack headerStack{std::move(incomingStack)};
     FairMQMessagePtr dataMessage{std::move(incomingDataMessage)};
 
-    FairMQMessagePtr headerMessage = NewMessage(headerBlock.buffer.get(),
-                                                headerBlock.bufferSize,
-                                                &AliceO2::Header::Block::freefn,
-                                                headerBlock.buffer.get());
-    headerBlock.buffer.release();
+    FairMQMessagePtr headerMessage = NewMessage(headerStack.buffer.get(),
+                                                headerStack.bufferSize,
+                                                &o2::Header::Stack::freefn,
+                                                headerStack.buffer.get());
+    headerStack.buffer.release();
 
     parts.AddPart(std::move(headerMessage));
     parts.AddPart(std::move(dataMessage));

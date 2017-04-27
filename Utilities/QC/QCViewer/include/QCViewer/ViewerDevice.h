@@ -9,19 +9,24 @@
 #include <TCanvas.h>
 #include <TList.h>
 
+namespace o2
+{
+namespace qc
+{
 class ViewerDevice : public FairMQDevice
 {
-public:
+ public:
   ViewerDevice(std::string viewerId, int numIoThreads, std::string drawingOptions = "");
-  virtual ~ViewerDevice() = default;
+  ~ViewerDevice() override = default;
 
   void executeRunLoop();
   void establishChannel(std::string type, std::string method, std::string address, std::string channelName);
-protected:
-  ViewerDevice() = default;
-  virtual void Run() override;
 
-private:
+ protected:
+  ViewerDevice() = default;
+  void Run() override;
+
+ private:
   std::unordered_map<std::string, std::shared_ptr<TCanvas>> objectsToDraw;
   std::string mDrawingOptions;
 
@@ -31,3 +36,5 @@ private:
 
   std::string getVmRSSUsage();
 };
+}
+}

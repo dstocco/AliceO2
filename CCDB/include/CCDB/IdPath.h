@@ -8,7 +8,7 @@
 #include <TString.h>  // for TString
 #include "Rtypes.h"   // for Bool_t, IdPath::Class, ClassDef, etc
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class IdPath : public TObject
@@ -25,7 +25,7 @@ class IdPath : public TObject
 
     IdPath(const TString &path);
 
-    virtual ~IdPath();
+    ~IdPath() override;
 
     const TString &getPathString() const
     {
@@ -73,7 +73,7 @@ class IdPath : public TObject
     Bool_t mValid;    // validity flag
     Bool_t mWildcard; // wildcard flag
 
-  ClassDef(IdPath, 1)
+  ClassDefOverride(IdPath, 1)
 };
 }
 }

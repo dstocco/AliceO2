@@ -1,14 +1,14 @@
 #ifndef FILESINK_H_
 #define FILESINK_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 class TFile;
 class TTree;
 class TObject;
 class TFolder;
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
 
@@ -18,47 +18,47 @@ class FileSink : public FairMQDevice
  public:
 
   FileSink();
-  virtual ~FileSink();
+  ~FileSink() override;
   
-  void SetOutputFileName(std::string tempString) { fFileName = tempString; }
-  void AddOutputBranch  (std::string classString, std::string branchString) 
+  void setOutputFileName(std::string tempString) { mFileName = tempString; }
+  void addOutputBranch  (std::string classString, std::string branchString) 
   { 
-    fClassNames .push_back(classString); 
-    fBranchNames.push_back(branchString); 
+    mClassNames .push_back(classString); 
+    mBranchNames.push_back(branchString); 
     LOG(INFO) << "AddOutput class " << classString.c_str() << " branch " << branchString.c_str() << ""; 
   }
-  std::string GetOutputFileName () { return fFileName;}
+  std::string getOutputFileName () { return mFileName;}
 
-  void SetInputChannelName (std::string tstr) {fInputChannelName = tstr;}
-  void SetAckChannelName(std::string tstr) {fAckChannelName = tstr;}
+  void setInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void setAckChannelName(std::string tstr) {mAckChannelName = tstr;}
 
  protected:
 
-  bool StoreData(FairMQParts&, int);
-  virtual void Init();
+  bool storeData(FairMQParts&, int);
+  void Init() override;
 
  private:
 
-  std::string     fInputChannelName;
-  std::string     fAckChannelName;
+  std::string     mInputChannelName;
+  std::string     mAckChannelName;
   
-  std::string fFileName;
-  std::string fTreeName;
+  std::string mFileName;
+  std::string mTreeName;
   
-  std::vector<std::string> fBranchNames;
-  std::vector<std::string> fClassNames;
+  std::vector<std::string> mBranchNames;
+  std::vector<std::string> mClassNames;
   
-  std::string fFileOption;
-  bool fFlowMode;
-  bool fWrite;
+  std::string mFileOption;
+  bool mFlowMode;
+  bool mWrite;
   
-  TFile* fOutFile;
-  TTree* fTree;
-  unsigned int    fNObjects;
-  TObject**       fOutputObjects;
-  /* FairEventHeader* fEventHeader; */
-  /* TClonesArray*    fOutput; */
-  TFolder* fFolder;
+  TFile* mOutFile;
+  TTree* mTree;
+  unsigned int    mNObjects;
+  TObject**       mOutputObjects;
+  /* FairEventHeader* mEventHeader; */
+  /* TClonesArray*    mOutput; */
+  TFolder* mFolder;
   
   FileSink(const FileSink&);
   FileSink& operator=(const FileSink&);

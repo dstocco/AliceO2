@@ -7,9 +7,9 @@
 
 #include <zlib.h>
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 using namespace std;
 
 BackendRiak::BackendRiak() {}

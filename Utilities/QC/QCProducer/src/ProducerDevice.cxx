@@ -1,14 +1,13 @@
 #include <chrono>
-#include <thread>
 #include <ctime>
+#include <thread>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-#include <TMessage.h>
 #include <FairMQLogger.h>
-#include <FairMQTransportFactoryZMQ.h>
+#include <TMessage.h>
 
 #include "QCProducer/ProducerDevice.h"
 
@@ -16,32 +15,33 @@ using namespace std;
 using namespace dds;
 using namespace dds::intercom_api;
 
-ProducerDevice::ProducerDevice(const char * producerId, const int numIoThreads, shared_ptr<Producer> & producer) : ddsCustomCmd(new CCustomCmd(mService))
+namespace o2
 {
-  this->SetTransport(new FairMQTransportFactoryZMQ);
+namespace qc
+{
+ProducerDevice::ProducerDevice(const char* producerId, const int numIoThreads, shared_ptr<Producer>& producer)
+  : ddsCustomCmd(new CCustomCmd(mService))
+{
+  this->SetTransport("zeromq");
   this->SetProperty(Id, producerId);
   this->SetProperty(NumIoThreads, numIoThreads);
   mProducer = producer;
   lastCheckedSecond = getCurrentSecond();
 }
 
-void ProducerDevice::deleteTMessage(void* data, void* hint)
-{
-  delete static_cast<TMessage*>(hint);
-}
-
+void ProducerDevice::deleteTMessage(void* data, void* hint) { delete static_cast<TMessage*>(hint); }
 void ProducerDevice::Run()
 {
   while (CheckCurrentState(RUNNING)) {
     TObject* newDataObject = mProducer->produceData();
-    TMessage* message = new TMessage(kMESS_OBJECT);
+    auto* message = new TMessage(kMESS_OBJECT);
     message->WriteObject(newDataObject);
 
     unique_ptr<FairMQMessage> request(NewMessage(message->Buffer(), message->BufferSize(), deleteTMessage, message));
 
     if (outputLimitReached()) {
       waitForLimitUnlock();
-    } 
+    }
 
     ++sentObjectsInCurrentSecond;
     sendDataToMerger(move(request));
@@ -93,27 +93,27 @@ void ProducerDevice::sendDataToMerger(unique_ptr<FairMQMessage> request)
   if (fChannels.at("data-out").at(0).SendAsync(request) == -2) {
     mLastBufferOverloadTime = clock();
     mBufferOverloaded = true;
-    LOG(DEBUG) << "Buffer of data-out channel is full. Waiting for free buffer...";   
+    LOG(DEBUG) << "Buffer of data-out channel is full. Waiting for free buffer...";
 
     while (fChannels.at("data-out").at(0).SendAsync(request) == -2) {
       this_thread::sleep_for(chrono::milliseconds(10));
     }
 
     mBufferOverloaded = false;
-    LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastBufferOverloadTime) / CLOCKS_PER_SEC << " seconds.";
+    LOG(DEBUG) << "Buffer was released after " << double(clock() - mLastBufferOverloadTime) / CLOCKS_PER_SEC
+               << " seconds.";
   }
 }
 
 void ProducerDevice::subscribeDdsCommands()
 {
   using namespace dds::intercom_api;
-  
+
   mService.subscribeOnError([](const EErrorCode _errorCode, const string& _errorMsg) {
-            LOG(ERROR) << "Error received with code: " << _errorCode << ", message: " << _errorMsg;
+    LOG(ERROR) << "Error received with code: " << _errorCode << ", message: " << _errorMsg;
   });
 
-  ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId)
-  {
+  ddsCustomCmd->subscribe([&](const string& command, const string& condition, uint64_t senderId) {
     using namespace boost::property_tree;
     using namespace boost::posix_time;
 
@@ -147,7 +147,8 @@ void ProducerDevice::subscribeDdsCommands()
   mService.start();
 }
 
-void ProducerDevice::establishChannel(std::string type, std::string method, std::string address, std::string channelName, const int bufferSize)
+void ProducerDevice::establishChannel(std::string type, std::string method, std::string address,
+                                      std::string channelName, const int bufferSize)
 {
   FairMQChannel requestChannel(type, method, address);
   requestChannel.UpdateSndBufSize(bufferSize);
@@ -177,4 +178,6 @@ void ProducerDevice::executeRunLoop()
   WaitForEndOfState("RESET_DEVICE");
 
   ChangeState("END");
+}
+}
 }

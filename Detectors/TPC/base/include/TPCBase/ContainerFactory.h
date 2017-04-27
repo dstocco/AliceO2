@@ -7,7 +7,7 @@ class FairParSet;
 
 class FairContainer;
 
-namespace AliceO2 {
+namespace o2 {
 namespace TPC {
 
 
@@ -18,9 +18,9 @@ class ContainerFactory : public FairContFact
     void setAllContainers();
   public:
     ContainerFactory();
-    ~ContainerFactory() {}
-    FairParSet* createContainer(FairContainer*);
-    ClassDef( AliceO2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
+    ~ContainerFactory() override = default;
+    FairParSet* createContainer(FairContainer*) override;
+    ClassDefOverride( o2::TPC::ContainerFactory,0) // Factory for all tpc parameter containers
 };
 }
 }

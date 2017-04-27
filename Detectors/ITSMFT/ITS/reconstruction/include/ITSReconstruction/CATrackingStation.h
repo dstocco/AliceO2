@@ -11,12 +11,12 @@
 
 #include <algorithm>
 #include <vector>
-#include <assert.h>
+#include <cassert>
 #include "ITSReconstruction/CAaux.h"
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITS {
     class GeometryTGeo;
     namespace CA {
@@ -48,7 +48,7 @@ namespace AliceO2 {
           void    SetZMin(float v)                    {mZMin = v;}
           void    SetZMax(float v)                    {mZMax = v;}
           //
-          void Init(TClonesArray* points, AliceO2::ITS::GeometryTGeo* geom);
+          void Init(TClonesArray* points, o2::ITS::GeometryTGeo* geom);
           //
           void SortClusters(const float vertex[3]);
           int  GetPhiBin(float phi)             const {return phi * mDPhiInv;}
@@ -118,7 +118,7 @@ namespace AliceO2 {
       inline ClsInfo_t* TrackingStation::GetNextClusterInfo() {
         // return cluster info for next matching cluster
         int id = GetNextClusterInfoID();
-        return id < 0 ? 0 : (ClsInfo_t*)&mSortedClInfo[id];
+        return id < 0 ? nullptr : (ClsInfo_t*)&mSortedClInfo[id];
       }
     } // namespace CA
   } // namespace ITS

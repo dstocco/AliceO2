@@ -3,16 +3,19 @@
 /// \author antonio.uras@cern.ch, bogdan.vulpescu@cern.ch 
 /// \date 01/08/2016
 
-#include "MFTSimulation/Geometry.h"
-#include "MFTSimulation/GeometryTGeo.h"
+#include "ITSMFTSimulation/Point.h"
+
+#include "MFTBase/Geometry.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/HalfSegmentation.h"
+#include "MFTBase/HalfDiskSegmentation.h"
+#include "MFTBase/LadderSegmentation.h"
+
 #include "MFTSimulation/Detector.h"
-#include "MFTSimulation/Point.h"
-#include "MFTSimulation/HalfSegmentation.h"
-#include "MFTSimulation/HalfDiskSegmentation.h"
-#include "MFTSimulation/LadderSegmentation.h"
 
 #include "SimulationDataFormat/DetectorList.h"
 #include "SimulationDataFormat/Stack.h"
+#include "Field/MagneticField.h"
 
 #include "TVirtualMC.h"
 #include "TGeoGlobalMagField.h"
@@ -22,31 +25,34 @@
 #include "TGeoManager.h"
 
 #include "FairLogger.h"
-#include "FairRootManager.h"
+#include "FairGenericRootManager.h"
 #include "FairVolume.h"
 
-using namespace AliceO2::MFT;
+using o2::ITSMFT::Point;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Detector)
+ClassImp(o2::MFT::Detector)
 
 //_____________________________________________________________________________
 Detector::Detector()
-: AliceO2::Base::Detector("MFT", kTRUE, kAliMft),
-  fVersion(1),
-  fGeometryTGeo(0),
-  fDensitySupportOverSi(0.036),
-  fPoints(new TClonesArray("AliceO2::MFT::Point"))
+: o2::Base::Detector("MFT", kTRUE, kAliMft),
+  mVersion(1),
+  mGeometryTGeo(nullptr),
+  mDensitySupportOverSi(0.036),
+  mPoints(new TClonesArray("o2::ITSMFT::Point")),
+  mTrackData()
 {
 
 }
 
 //_____________________________________________________________________________
 Detector::Detector(const Detector& src)
-  : AliceO2::Base::Detector(src),
-    fVersion(src.fVersion),
-    fGeometryTGeo(src.fGeometryTGeo),
-    fDensitySupportOverSi(src.fDensitySupportOverSi),
-    fPoints(0)
+  : o2::Base::Detector(src),
+    mVersion(src.mVersion),
+    mGeometryTGeo(src.mGeometryTGeo),
+    mDensitySupportOverSi(src.mDensitySupportOverSi),
+    mPoints(nullptr),
+    mTrackData()
 {
   
 }
@@ -62,10 +68,15 @@ Detector &Detector::operator=(const Detector &src)
   // base class assignment
   Base::Detector::operator=(src);
 
-  fVersion = src.fVersion;
-  fGeometryTGeo = src.fGeometryTGeo;
-  fDensitySupportOverSi = src.fDensitySupportOverSi;
-  fPoints = 0;
+  mVersion = src.mVersion;
+  mGeometryTGeo = src.mGeometryTGeo;
+  mDensitySupportOverSi = src.mDensitySupportOverSi;
+  mPoints = nullptr;
+  mTrackData.mHitStarted = src.mTrackData.mHitStarted;
+  mTrackData.mTrkStatusStart = src.mTrackData.mTrkStatusStart;
+  mTrackData.mPositionStart = src.mTrackData.mPositionStart;
+  mTrackData.mMomentumStart = src.mTrackData.mMomentumStart;
+  mTrackData.mEnergyLoss = src.mTrackData.mEnergyLoss;
 
 }
 
@@ -73,11 +84,11 @@ Detector &Detector::operator=(const Detector &src)
 Detector::~Detector()
 {
 
-  delete fGeometryTGeo;
+  delete mGeometryTGeo;
 
-  if (fPoints) {
-    fPoints->Delete();
-    delete fPoints;
+  if (mPoints) {
+    mPoints->Delete();
+    delete mPoints;
   }
   
 }
@@ -100,13 +111,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     return kFALSE;
   }
 
-  Geometry *mftGeo = Geometry::Instance();
-  Segmentation * seg = mftGeo->GetSegmentation();
+  Geometry *mftGeo = Geometry::instance();
+  Segmentation * seg = mftGeo->getSegmentation();
   if (!seg) Fatal("ProcessHits","No segmentation available",0,0);
 
   Int_t copy;
   // Check if hit is into a MFT sensor volume
-  if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->GetSensorVolumeID() ) return kFALSE;
+  if(TVirtualMC::GetMC()->CurrentVolID(copy) != mftGeo->getSensorVolumeID() ) return kFALSE;
 
   // Get The Sensor Unique ID
   Int_t chipId = -1, ladderId = -1, diskId = -1, halfId = -1, level = 0;
@@ -115,100 +126,84 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   TVirtualMC::GetMC()->CurrentVolOffID(++level,diskId);
   TVirtualMC::GetMC()->CurrentVolOffID(++level,halfId);
 
-  Int_t detElemID = mftGeo->GetObjectID(Geometry::kSensorType,halfId,diskId,ladderId,chipId);
+  Int_t detElemID = mftGeo->getObjectID(Geometry::SensorType,halfId,diskId,ladderId,chipId);
 
-  LOG(DEBUG1) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
+  //LOG(INFO) << "Found hit into half = " << halfId << "; disk = " << diskId << "; ladder = " << ladderId << "; chip = " << chipId << FairLogger::endl;
 
-  if (TVirtualMC::GetMC()->IsTrackExiting()) {
-    //AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kMFT);
+  bool startHit=false, stopHit=false;
+  unsigned char status = 0;
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
+
+  // track is entering or created in the volume
+  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+    startHit = true;
   }
-  
-  static TLorentzVector position, momentum;
-  
-  Int_t  status = 0;
-  
-  // Track status
-  if (TVirtualMC::GetMC()->IsTrackInside())      status += 0x1<<0;
-  if (TVirtualMC::GetMC()->IsTrackEntering())    status += 0x1<<1;
-  if (TVirtualMC::GetMC()->IsTrackExiting())     status += 0x1<<2;
-  if (TVirtualMC::GetMC()->IsTrackOut())         status += 0x1<<3;
-  if (TVirtualMC::GetMC()->IsTrackDisappeared()) status += 0x1<<4;
-  if (TVirtualMC::GetMC()->IsTrackStop())        status += 0x1<<5;
-  if (TVirtualMC::GetMC()->IsTrackAlive())       status += 0x1<<6;
-  
-  // ---------- Fill hit structure
-  /*
-  hit.SetDetElemID(detElemID);
-  hit.SetPlane(diskId);
-  hit.SetTrack(gAlice->GetMCApp()->GetCurrentTrackNumber());
-  
-  TVirtualMC::GetMC()->TrackPosition(position);
-  TVirtualMC::GetMC()->TrackMomentum(momentum);
-  
-  LOG(DEBUG1) << TVirtualMC::GetMC()->CurrentVolName() << " Hit " << fNHits << " (x = " << position.X() << " , y = " << position.Y() << " , z = " << position.Z() << ") belongs to track " << gAlice->GetMCApp()->GetCurrentTrackNumber() << FairLogger::endl;
-  
-  hit.SetPosition(position);
-  hit.SetTOF(TVirtualMC::GetMC()->TrackTime());
-  hit.SetMomentum(momentum);
-  hit.SetStatus(status);
-  hit.SetEloss(TVirtualMC::GetMC()->Edep());
-  //hit.SetShunt(GetIshunt());
-  //if (TVirtualMC::GetMC()->IsTrackEntering()) {
-  //  hit.SetStartPosition(position);
-  //  hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
-  //  hit.SetStartStatus(status);
-  //  return; // don't save entering hit.
-  //}
-  
-  // Fill hit structure with this new hit.
-  new ((*fHits)[fNhits++]) AliMFTHit(hit);
-  
-  // Save old position... for next hit.
-  //   hit.SetStartPosition(position);
-  //   hit.SetStartTime(TVirtualMC::GetMC()->TrackTime());
-  //   hit.SetStartStatus(status);
-  */
-  if (!TVirtualMC::GetMC()->IsTrackExiting()) return kFALSE;
+  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+    stopHit = true;
+  }
 
-  Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  Int_t detID = vol->getMCid();
-  TVirtualMC::GetMC()->TrackPosition(position);
-  TVirtualMC::GetMC()->TrackMomentum(momentum);
-  Double32_t time = TVirtualMC::GetMC()->TrackTime();
-  Double32_t length = TVirtualMC::GetMC()->TrackLength();
-  Double32_t eLoss = TVirtualMC::GetMC()->Edep();
+  // increment energy loss at all steps except entrance
+  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!(startHit|stopHit)) return kFALSE; // do noting
 
-  AddHit(trackID, detID, TVector3(position.X(),position.Y(),position.Z()), TVector3(momentum.X(),momentum.Y(),momentum.Z()), time, length, eLoss);
-  /*
-  printf("%5d %3d %10.4f %10.4f %10.4f %6.2f %6.2f %6.2f status ",trackID,detID,position.X(),position.Y(),position.Z(),momentum.X(),momentum.Y(),momentum.Z());
-  for (Int_t i = 7; i >= 0; i--) printf("%1d",((status >> i) & 0x1));
-  printf("\n");
-  */
-  // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-  stack->AddPoint(kAliMft);
+  if (startHit) {
+
+    mTrackData.mEnergyLoss = 0.;
+    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
+    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    mTrackData.mTrkStatusStart = status;
+    mTrackData.mHitStarted = true;
+
+  }
+
+  if (stopHit) {
+
+    TLorentzVector positionStop;
+    TVirtualMC::GetMC()->TrackPosition(positionStop);
+
+    Int_t trackID  = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+    Int_t detID = vol->getMCid();
+
+    Point *p = addHit(trackID,detID,
+		      mTrackData.mPositionStart.Vect(),
+		      positionStop.Vect(),
+		      mTrackData.mMomentumStart.Vect(),
+		      mTrackData.mMomentumStart.E(),
+		      positionStop.T(),
+		      mTrackData.mEnergyLoss, 
+		      mTrackData.mTrkStatusStart,
+		      status);
+    
+    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    stack->AddPoint(kAliMft);
+    
+  }
 
   return kTRUE;
 
 }
 
 //_____________________________________________________________________________
-Point* Detector::AddHit(Int_t trackID, Int_t detID, TVector3 pos, TVector3 mom, Double_t time, Double_t length, Double_t eLoss)
+Point* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE, double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
 
-  TClonesArray &clref = *fPoints;
+  TClonesArray &clref = *mPoints;
   Int_t size = clref.GetEntriesFast();
 
-  return new(clref[size]) Point(trackID, detID, pos, mom, time, length, eLoss);
+  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 
 }
 
 //_____________________________________________________________________________
-void Detector::CreateMaterials()
+void Detector::createMaterials()
 {
   
-  // data from PDG booklet 2002                 
-  // density [gr/cm^3], rad len [cm], abs len [cm]
+  // data from PDG booklet 2002                 density [gr/cm^3]     rad len [cm]           abs len [cm]
   Float_t   aSi = 28.085 ,    zSi   = 14. ,     dSi      =  2.329 ,   radSi   =  21.82/dSi , absSi   = 108.4/dSi  ;    // Silicon
   Float_t   aCarb = 12.01 ,   zCarb =  6. ,     dCarb    =  2.265 ,   radCarb =  18.8 ,      absCarb = 49.9       ;    // Carbon
   Float_t   aAlu = 26.98 ,    zAlu  = 13. ,     dAlu     =  2.70  ,   radAlu  =  8.897 ,     absAlu  = 39.70      ;    // Aluminum
@@ -257,14 +252,16 @@ void Detector::CreateMaterials()
   Float_t aCM55J[4]={12.0107,14.0067,15.9994,1.00794};
   Float_t zCM55J[4]={6.,7.,8.,1.};
   Float_t wCM55J[4]={0.908508078,0.010387573,0.055957585,0.025146765};
-  Float_t dCM55J = 1.33; // new value for MFT, from J.M. Buhour infos
+  //Float_t dCM55J = 1.33; // from J.M. Buhour infos
+  Float_t dCM55J = 1.548;// increase by 16.4% to account that water pipes are outside the rohacell plate
 
   // Rohacell mixture
   const Int_t nRohacell = 3;
   Float_t aRohacell[nRohacell] = {1.00794, 12.0107, 15.9994};
   Float_t zRohacell[nRohacell] = {1., 6., 8.};
   Float_t wRohacell[nRohacell] = {0.0858, 0.5964, 0.3178};
-  Float_t dRohacell = 0.032;  // 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
+  //Float_t dRohacell = 0.032;  // 0.032 g/cm3 rohacell 31, 0.075 g/cm3 rohacell 71;
+  Float_t dRohacell = 0.032/(1-0.3134);  // the density is increased since the water pipes are not inside the rohacell in the code ==> thickness decreased by 31.34%
   
   // Polyimide pipe mixture
   const Int_t nPolyimide = 4;
@@ -289,7 +286,7 @@ void Detector::CreateMaterials()
 
 
   //======================== From ITS code ===================================
-  // X7R capacitors - updated from F.Tosello's web page - M.S. 18 Oct 10
+  //X7R capacitors - updated from F.Tosello's web page - M.S. 18 Oct 10
   // 58.6928 --> innner electrodes (mainly Ni)
   // 63.5460 --> terminaisons (Cu) 
   // 118.710 --> terminaisons (Sn)
@@ -300,6 +297,7 @@ void Detector::CreateMaterials()
   Float_t dX7R = 6.07914;
   
   //X7R weld, i.e. Sn 60% Pb 40% (from F.Tosello's web page - M.S. 15 Oct 10)
+  
   Float_t aX7Rweld[2]={118.71 , 207.20};
   Float_t zX7Rweld[2]={ 50.   ,  82.  };
   Float_t wX7Rweld[2]={  0.60 ,   0.40};
@@ -323,26 +321,27 @@ void Detector::CreateMaterials()
   Float_t epsilSi  =  0.5e-4;                // tracking precision [cm]
   Float_t stminSi  = -0.001;                 // minimum step due to continuous processes [cm] (negative value: choose it automatically)
   
-  //Int_t    fieldType        = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Integral();     // Field type
-  //Double_t maxField         = ((AliceO2::Field::MagneticField*)TGeoGlobalMagField::Instance()->GetField())->Max();     // Field max.
-  
-  Int_t fieldType = 2;
-  Float_t maxField = 10.0;
+  o2::field::MagneticField *fld = (o2::field::MagneticField*)(TVirtualMC::GetMC()->GetMagField());
 
-  AliceO2::Base::Detector::Mixture(kAir,"Air$", aAir, zAir, dAir, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kAir,    "Air$", kAir, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
-  
-  AliceO2::Base::Detector::Mixture(kVacuum, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
-  AliceO2::Base::Detector::Medium(kVacuum,  "Vacuum$", kVacuum, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  Int_t fieldType = fld->GetType();
+  Float_t maxField = fld->Max();
 
-  AliceO2::Base::Detector::Material(++matId, "Si$", aSi, zSi, dSi, radSi, absSi);
-  AliceO2::Base::Detector::Medium(kSi,       "Si$", matId, sens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  LOG(INFO) << "Detector::CreateMaterials >>>>> fieldType " << fieldType << " maxField " << maxField << "\n"; 
+
+  o2::Base::Detector::Mixture(++matId, "Air$", aAir, zAir, dAir, nAir, wAir);
+  o2::Base::Detector::Medium(Air,     "Air$", matId, unsens, fieldType, maxField, tmaxfd, stemax, deemax, epsil, stmin);
+
+  o2::Base::Detector::Mixture(++matId, "Vacuum$", aAir, zAir, dAirVacuum, nAir, wAir);
+  o2::Base::Detector::Medium(Vacuum,  "Vacuum$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+  o2::Base::Detector::Material(++matId, "Si$", aSi, zSi, dSi, radSi, absSi);
+  o2::Base::Detector::Medium(Si,       "Si$", matId, sens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
-  AliceO2::Base::Detector::Material(++matId, "Readout$", aSi, zSi, dSi, radSi, absSi);
-  AliceO2::Base::Detector::Medium(kReadout,  "Readout$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::Base::Detector::Material(++matId, "Readout$", aSi, zSi, dSi, radSi, absSi);
+  o2::Base::Detector::Medium(Readout,  "Readout$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
-  AliceO2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*fDensitySupportOverSi, radSi/fDensitySupportOverSi, absSi/fDensitySupportOverSi);
-  AliceO2::Base::Detector::Medium(kSupport,  "Support$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::Base::Detector::Material(++matId, "Support$", aSi, zSi, dSi*mDensitySupportOverSi, radSi/mDensitySupportOverSi, absSi/mDensitySupportOverSi);
+  o2::Base::Detector::Medium(Support,  "Support$", matId, unsens, fieldType, maxField, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
   
   Double_t maxBending       = 0;     // Max Angle
   Double_t maxStepSize      = 0.001; // Max step size
@@ -360,70 +359,75 @@ void Detector::CreateMaterials()
   maxStepSize      = .01;
   precision        = .003;
   minStepSize      = .003;
-  AliceO2::Base::Detector::Material(matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
-  AliceO2::Base::Detector::Medium(kCarbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
+  o2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb);
+  o2::Base::Detector::Medium(Carbon, "Carbon$", matId,0,fieldType,maxField,maxBending,maxStepSize,maxEnergyLoss,precision,minStepSize);
 
-  AliceO2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
-  AliceO2::Base::Detector::Medium(kBe,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  //AliceO2::Base::Detector::Material(++matId, "Carbon$", aCarb, zCarb, dCarb, radCarb, absCarb );
+  //AliceO2::Base::Detector::Medium(Carbon,   "Carbon$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
-  AliceO2::Base::Detector::Medium(kAlu,      "Alu$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId, "Be$", aBe, zBe, dBe, radBe, absBe );
+  o2::Base::Detector::Medium(Be,   "Be$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
+  
+  o2::Base::Detector::Material(++matId, "Alu$", aAlu, zAlu, dAlu, radAlu, absAlu);
+  o2::Base::Detector::Medium(Alu,      "Alu$", matId, unsens, fieldType,  maxField, tmaxfd, stemax, deemax, epsil, stmin);
     
-  AliceO2::Base::Detector::Mixture(++matId, "Water$", aWater, zWater, dWater, nWater, wWater);
-  AliceO2::Base::Detector::Medium(kWater,   "Water$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Water$", aWater, zWater, dWater, nWater, wWater);
+  o2::Base::Detector::Medium(Water,   "Water$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "SiO2$", aSiO2, zSiO2, dSiO2, nSiO2, wSiO2);
-  AliceO2::Base::Detector::Medium(kSiO2,    "SiO2$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "SiO2$", aSiO2, zSiO2, dSiO2, nSiO2, wSiO2);
+  o2::Base::Detector::Medium(SiO2,    "SiO2$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Inox$", aInox, zInox, dInox, nInox, wInox);
-  AliceO2::Base::Detector::Medium(kInox,    "Inox$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Inox$", aInox, zInox, dInox, nInox, wInox);
+  o2::Base::Detector::Medium(Inox,    "Inox$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Kapton$", aKapton, zKapton, dKapton, 4, wKapton);
-  AliceO2::Base::Detector::Medium(kKapton,"Kapton$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Kapton$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::Base::Detector::Medium(Kapton,"Kapton$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "Epoxy$", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
-  AliceO2::Base::Detector::Medium(kEpoxy,"Epoxy$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "Epoxy$", aEpoxy, zEpoxy, dEpoxy, -3, wEpoxy);
+  o2::Base::Detector::Medium(Epoxy,"Epoxy$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "SE4445$", aSE4445, zSE4445, dSE4445, -5, wSE4445);
-  AliceO2::Base::Detector::Medium(kSE4445,"SE4445$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "SE4445$", aSE4445, zSE4445, dSE4445, -5, wSE4445);
+  o2::Base::Detector::Medium(SE4445,"SE4445$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,"CarbonFiber$",aCM55J,zCM55J,dCM55J,4,wCM55J);
-  AliceO2::Base::Detector::Medium(kCarbonEpoxy,"CarbonFiber$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,"CarbonFiber$",aCM55J,zCM55J,dCM55J,4,wCM55J);
+  o2::Base::Detector::Medium(CarbonEpoxy,"CarbonFiber$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,  "Rohacell", aRohacell, zRohacell, dRohacell, nRohacell, wRohacell);
-  AliceO2::Base::Detector::Medium(kRohacell, "Rohacell", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,  "Rohacell", aRohacell, zRohacell, dRohacell, nRohacell, wRohacell);
+  o2::Base::Detector::Medium(Rohacell, "Rohacell", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
-  AliceO2::Base::Detector::Medium(kPolyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId,  "Polyimide", aPolyimide, zPolyimide, dPolyimide, nPolyimide, wPolyimide);
+  o2::Base::Detector::Medium(Polyimide, "Polyimide", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 	
-  AliceO2::Base::Detector::Mixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
-  AliceO2::Base::Detector::Medium(kPEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "PEEK$", aPEEK, zPEEK, dPEEK, nPEEK, wPEEK);
+  o2::Base::Detector::Medium(PEEK,    "PEEK$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Mixture(++matId, "FR4$", aFR4, zFR4, dFR4, nFR4, wFR4);
-  AliceO2::Base::Detector::Medium(kFR4,    "FR4$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "FR4$", aFR4, zFR4, dFR4, nFR4, wFR4);
+  o2::Base::Detector::Medium(FR4,    "FR4$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   
-  AliceO2::Base::Detector::Material(++matId, "Cu$", aCu, zCu, dCu, radCu, absCu);
-  AliceO2::Base::Detector::Medium(kCu,       "Cu$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId, "Cu$", aCu, zCu, dCu, radCu, absCu);
+  o2::Base::Detector::Medium(Cu,       "Cu$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
  
-  AliceO2::Base::Detector::Mixture(++matId, "X7Rcapacitors$",aX7R,zX7R,dX7R,6,wX7R);
-  AliceO2::Base::Detector::Medium(kX7R,     "X7Rcapacitors$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "X7Rcapacitors$",aX7R,zX7R,dX7R,6,wX7R);
+  o2::Base::Detector::Medium(X7R,     "X7Rcapacitors$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
-  AliceO2::Base::Detector::Mixture(++matId, "X7Rweld$",aX7Rweld,zX7Rweld,dX7Rweld,2,wX7Rweld);
-  AliceO2::Base::Detector::Medium(kX7Rw,    "X7Rweld$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Mixture(++matId, "X7Rweld$",aX7Rweld,zX7Rweld,dX7Rweld,2,wX7Rweld);
+  o2::Base::Detector::Medium(X7Rw,    "X7Rweld$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Carbon fleece from AliITSSUv2.cxx
-  AliceO2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
-  AliceO2::Base::Detector::Medium(kCarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  o2::Base::Detector::Material(++matId,"CarbonFleece$",12.0107,6,0.4,radCarb,absCarb);          // 999,999);  why 999???
+  o2::Base::Detector::Medium(CarbonFleece,  "CarbonFleece$",matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+
+  LOG(INFO) << "Detector::CreateMaterials -----> matId = " << matId << "\n";
 
 }
 
 //_____________________________________________________________________________
-void Detector::CreateGeometry()
+void Detector::createGeometry()
 {
 
-  Geometry *mftGeom = Geometry::Instance();
-  mftGeom->Build();
-  fGeometryTGeo = new GeometryTGeo();
+  Geometry *mftGeom = Geometry::instance();
+  mftGeom->build();
+  mGeometryTGeo = new GeometryTGeo();
 
 }
 
@@ -431,35 +435,35 @@ void Detector::CreateGeometry()
 void Detector::ConstructGeometry()
 {
 
-  CreateMaterials();
-  CreateGeometry();
-  DefineSensitiveVolumes();
+  createMaterials();
+  createGeometry();
+  defineSensitiveVolumes();
 
 }
 
 //_____________________________________________________________________________
-void Detector::DefineSensitiveVolumes()
+void Detector::defineSensitiveVolumes()
 {
 
   TGeoVolume* vol;
   /*
-  Geometry *mftGeo = Geometry::Instance();
-  Segmentation *seg = mftGeo->GetSegmentation();
+  Geometry *mftGeo = Geometry::instance();
+  Segmentation *seg = mftGeo->getSegmentation();
 
   Int_t nSensVol = 0;
   for (Int_t iHalf = 0; iHalf < 2; iHalf++) {
-    HalfSegmentation * halfSeg = seg->GetHalf(iHalf);
-    for (Int_t iDisk = 0; iDisk < halfSeg->GetNHalfDisks(); iDisk++) {
-      HalfDiskSegmentation* halfDiskSeg = halfSeg->GetHalfDisk(iDisk);
-      for (Int_t iLadder = 0; iLadder < halfDiskSeg->GetNLadders(); iLadder++) {
-	LadderSegmentation* ladderSeg = halfDiskSeg->GetLadder(iLadder);
+    HalfSegmentation * halfSeg = seg->getHalf(iHalf);
+    for (Int_t iDisk = 0; iDisk < halfSeg->getNHalfDisks(); iDisk++) {
+      HalfDiskSegmentation* halfDiskSeg = halfSeg->getHalfDisk(iDisk);
+      for (Int_t iLadder = 0; iLadder < halfDiskSeg->getNLadders(); iLadder++) {
+	LadderSegmentation* ladderSeg = halfDiskSeg->getLadder(iLadder);
 	TString volumeName = Form("MFT_S_%d_%d_%d",
-	  mftGeo->GetHalfID(ladderSeg->GetUniqueID()),
-	  mftGeo->GetHalfDiskID(ladderSeg->GetUniqueID()),
-	  mftGeo->GetLadderID(ladderSeg->GetUniqueID()));
+	  mftGeo->getHalfMFTID(ladderSeg->GetUniqueID()),
+	  mftGeo->getHalfDiskID(ladderSeg->GetUniqueID()),
+	  mftGeo->getLadderID(ladderSeg->GetUniqueID()));
 	vol = gGeoManager->GetVolume(volumeName.Data());
 	LOG(INFO) << "Add sensitive volume: " << volumeName.Data() << FairLogger::endl;
-	AddSensitiveVolume(vol);
+	addSensitiveVolume(vol);
 	nSensVol++;
       }
     }
@@ -475,8 +479,8 @@ void Detector::DefineSensitiveVolumes()
 void Detector::EndOfEvent()
 {
 
-  if (fPoints) { 
-    fPoints->Clear(); 
+  if (mPoints) { 
+    mPoints->Clear(); 
   }
 
 }
@@ -488,8 +492,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("MFTPoints", "MFT", fPoints, kTRUE);
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->Register("MFTPoints", "MFT", mPoints, kTRUE);
   }
 
 }
@@ -498,9 +502,9 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 {
 
   if (iColl == 0) {
-    return fPoints;
+    return mPoints;
   } else {
-    return NULL;
+    return nullptr;
   }
 
 }
@@ -509,6 +513,6 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
 void Detector::Reset()
 {
 
-  fPoints->Clear();
+  mPoints->Clear();
 
 }

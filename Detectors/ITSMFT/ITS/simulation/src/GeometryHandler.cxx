@@ -12,8 +12,8 @@
 #include "TGeoVolume.h"  // for TGeoVolume
 #include "TVirtualMC.h"  // for TVirtualMC, gMC
 
-#include <stdio.h>  // for printf
-#include <string.h> // for NULL, strlen, strncpy
+#include <cstdio>  // for printf
+#include <cstring> // for NULL, strlen, strncpy
 #include <iostream> // for cout, endl
 #include <map>      // for map
 #include <utility>  // for pair
@@ -23,17 +23,17 @@ using std::pair;
 using std::cout;
 using std::endl;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
 GeometryHandler::GeometryHandler()
   : TObject(),
     mIsSimulation(kFALSE),
     mLastUsedDetectorId(0),
     mGeometryPathHash(0),
-    mCurrentVolume(NULL),
-    mVolumeShape(NULL),
+    mCurrentVolume(nullptr),
+    mVolumeShape(nullptr),
     mGlobalCentre(),
-    mGlobalMatrix(NULL)
+    mGlobalMatrix(nullptr)
 {
 }
 
@@ -165,7 +165,7 @@ const char *GeometryHandler::currentVolumeOffName(Int_t off) const
     return TVirtualMC::GetMC()->CurrentVolOffName(off);
   } else {
     if (off < 0 || off > gGeoManager->GetLevel()) {
-      return 0;
+      return nullptr;
     }
 
     if (off == 0) {
@@ -175,7 +175,7 @@ const char *GeometryHandler::currentVolumeOffName(Int_t off) const
     TGeoNode *node = gGeoManager->GetMother(off);
 
     if (!node) {
-      return 0;
+      return nullptr;
     }
 
     return node->GetVolume()->GetName();
@@ -199,4 +199,4 @@ void GeometryHandler::navigateTo(TString volumeName)
   }
 }
 
-ClassImp(AliceO2::ITS::GeometryHandler)
+ClassImp(o2::ITS::GeometryHandler)

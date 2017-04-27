@@ -15,7 +15,7 @@ class TGeoVolume;
 
 class TGeoHMatrix;
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 /// Helper class to extract information from the GeoManager which is needed in many other TOF
@@ -29,7 +29,7 @@ class GeometryHandler : public TObject
 
     /// Default destructor
     ~GeometryHandler()
-    { };
+    override = default;
 
     Int_t getUniqueDetectorId();
 
@@ -86,7 +86,7 @@ class GeometryHandler : public TObject
 
     GeometryHandler operator=(const GeometryHandler &);
 
-  ClassDef(GeometryHandler, 1)
+  ClassDefOverride(GeometryHandler, 1)
 };
 }
 }

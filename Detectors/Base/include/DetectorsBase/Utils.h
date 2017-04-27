@@ -6,10 +6,10 @@
 #define ALICEO2_BASE_UTILS
 
 #include "DetectorsBase/Constants.h"
-#include <math.h>
+#include <cmath>
 #include <array>
 
-namespace AliceO2 {
+namespace o2 {
   namespace Base {
     namespace Utils {
 

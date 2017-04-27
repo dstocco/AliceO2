@@ -19,13 +19,13 @@
 #include <chrono>
 
 #include "O2MessageMonitor/O2MessageMonitor.h"
-#include "FairMQProgOptions.h"
-#include "FairMQLogger.h"
+#include <options/FairMQProgOptions.h>
+#include <FairMQLogger.h>
 #include "Headers/DataHeader.h"
 
 using namespace std;
-using namespace AliceO2::Header;
-using namespace AliceO2::Base;
+using namespace o2::Header;
+using namespace o2::Base;
 
 using NameHeader48 = NameHeader<48>; //header holding 16 characters
 
@@ -33,7 +33,7 @@ using NameHeader48 = NameHeader<48>; //header holding 16 characters
 O2MessageMonitor::O2MessageMonitor()
   : mDataHeader()
   , mPayload("I am the info payload")
-  , mName("My name is \"gDataDescriptionInfo\"")
+  , mName(R"(My name is "gDataDescriptionInfo")")
   , mDelay(1000)
   , mIterations(10)
   , mLimitOutputCharacters(1024)
@@ -46,12 +46,12 @@ O2MessageMonitor::O2MessageMonitor()
 //__________________________________________________________________________________________________
 void O2MessageMonitor::InitTask()
 {
-  mDelay = fConfig->GetValue<int>("sleep");
-  mIterations = fConfig->GetValue<int>("n");
-  mPayload = fConfig->GetValue<std::string>("payload");
-  std::string tmp = fConfig->GetValue<std::string>("name");
+  mDelay = GetConfig()->GetValue<int>("sleep");
+  mIterations = GetConfig()->GetValue<int>("n");
+  mPayload = GetConfig()->GetValue<std::string>("payload");
+  std::string tmp = GetConfig()->GetValue<std::string>("name");
   if (!tmp.empty()) mName = tmp;
-  mLimitOutputCharacters = fConfig->GetValue<int>("limit");
+  mLimitOutputCharacters = GetConfig()->GetValue<int>("limit");
 }
 
 //__________________________________________________________________________________________________

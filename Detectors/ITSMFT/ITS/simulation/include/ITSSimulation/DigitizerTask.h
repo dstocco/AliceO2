@@ -9,14 +9,14 @@
 #ifndef ALICEO2_ITS_DIGITIZERTASK_H
 #define ALICEO2_ITS_DIGITIZERTASK_H
 
-#include <stdio.h>
+#include <cstdio>
 #include "FairTask.h" // for FairTask, InitStatus
 #include "Rtypes.h"   // for DigitizerTask::Class, ClassDef, etc
 
 #include "ITSSimulation/Digitizer.h"
 
 class TClonesArray;
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {
@@ -24,7 +24,7 @@ namespace AliceO2
   }
 } // lines 19-19
 
-namespace AliceO2
+namespace o2
 {
   namespace ITS
   {
@@ -35,11 +35,11 @@ namespace AliceO2
     public:
       DigitizerTask(Bool_t useAlpide = kFALSE);
 
-      virtual ~DigitizerTask();
+      ~DigitizerTask() override;
 
-      virtual InitStatus Init();
+      InitStatus Init() override;
 
-      virtual void Exec(Option_t* option);
+      void Exec(Option_t* option) override;
 
       Digitizer& getDigitizer() { return mDigitizer; }
     private:
@@ -49,7 +49,7 @@ namespace AliceO2
       TClonesArray* mPointsArray; ///< Array of MC hits
       TClonesArray* mDigitsArray; ///< Array of digits
 
-      ClassDef(DigitizerTask, 1)
+      ClassDefOverride(DigitizerTask, 1)
     };
   }
 }

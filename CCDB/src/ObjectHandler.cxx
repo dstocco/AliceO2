@@ -1,18 +1,17 @@
 #include "CCDB/ObjectHandler.h"
 
-#include "AliCDBEntry.h"
 #include "TBufferFile.h"
 #include "TFile.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
 #include <zlib.h>
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
-ObjectHandler::ObjectHandler() {}
+ObjectHandler::ObjectHandler() = default;
 
-ObjectHandler::~ObjectHandler() {}
+ObjectHandler::~ObjectHandler() = default;
 
 void ObjectHandler::GetObject(const std::string& path, std::string& object)
 {
@@ -24,7 +23,8 @@ void ObjectHandler::GetObject(const std::string& path, std::string& object)
   }
 
   // Get the AliCDBEntry from the root file
-  AliCDBEntry* entry = (AliCDBEntry*)file->Get("AliCDBEntry");
+  // we cast it directly to TObject (to avoid a link dependency on AliRoot here)
+  TObject* entry = file->Get("AliCDBEntry");
 
   // Create an outcoming buffer
   TBufferFile* buffer = new TBufferFile(TBuffer::kWrite);

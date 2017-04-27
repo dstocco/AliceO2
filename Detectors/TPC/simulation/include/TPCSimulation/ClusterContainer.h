@@ -7,7 +7,7 @@
 #include "Rtypes.h"
 #include "TClonesArray.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace TPC{
     class Cluster;
 
@@ -20,7 +20,7 @@ namespace AliceO2 {
 
       // Initialize the clones array
       // @param clusterType Possibility to store different types of clusters
-      void InitArray(const Char_t* clusterType="AliceO2::TPC::Cluster");
+      void InitArray(const Char_t* clusterType="o2::TPC::Cluster");
 
       // Empty array
       void Reset();
@@ -40,6 +40,8 @@ namespace AliceO2 {
 
       // Copy container info into the output container
       void FillOutputContainer(TClonesArray *outputcont);
+
+      Int_t GetEntries() { return mClusterArray->GetEntries(); };
 
     private:
       Int_t         mNclusters;        // number of clusters

@@ -15,7 +15,7 @@
 
 #include "ITSMFTSimulation/ClusterShape.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
 
     class SimuClusterShaper : public TObject {
@@ -23,13 +23,13 @@ namespace AliceO2 {
     public:
       SimuClusterShaper();
       SimuClusterShaper(const UInt_t &cs);
-      virtual ~SimuClusterShaper();
+      ~SimuClusterShaper() override;
       void FillClusterRandomly();
       void AddNoisePixel();
 
-      inline UInt_t  GetNRows() {return fCShape->GetNRows();}
-      inline UInt_t  GetNCols() {return fCShape->GetNCols();}
-      inline void    GetShape(std::vector<UInt_t>& v) {fCShape->GetShape(v);}
+      inline UInt_t  GetNRows() {return mCShape->GetNRows();}
+      inline UInt_t  GetNCols() {return mCShape->GetNCols();}
+      inline void    GetShape(std::vector<UInt_t>& v) {mCShape->GetShape(v);}
 
       inline std::string ShapeSting(UInt_t cs, UInt_t *cshape) const {
         std::stringstream out;
@@ -41,10 +41,10 @@ namespace AliceO2 {
       }
 
     private:
-      UInt_t fNpixOn;
-      ClusterShape *fCShape;
+      UInt_t mNpixOn;
+      ClusterShape *mCShape;
 
-      ClassDef(SimuClusterShaper,1)
+      ClassDefOverride(SimuClusterShaper,1)
     };
   }
 }

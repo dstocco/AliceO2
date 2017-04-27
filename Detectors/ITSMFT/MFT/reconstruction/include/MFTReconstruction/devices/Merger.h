@@ -7,13 +7,13 @@
 #include "TTree.h"
 #include "FairEventHeader.h"
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
-#include "MFTBase/EventHeader.h"
-
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
+
+class EventHeader;
 
 typedef std::multimap<std::pair<std::pair<int,int>,int>,TObject*> MultiMapDef;
 
@@ -23,32 +23,32 @@ class Merger : public FairMQDevice
  public:
 
   Merger();
-  virtual ~Merger();
+  ~Merger() override;
   
-  void SetNofParts(int iparts) { fNofParts = iparts; }
+  void setNofParts(int iparts) { mNofParts = iparts; }
   
  protected:
 
-  virtual void Init();
-  bool MergeData(FairMQParts&, int);
+  void Init() override;
+  bool mergeData(FairMQParts&, int);
   
  private:
   
-  EventHeader* fEventHeader;
-  int fNofParts;
+  EventHeader* mEventHeader;
+  int mNofParts;
   
-  std::map<std::pair<int,int>,int> fNofPartsPerEventMap;  // number of parts for pair<event number,run id>
-  MultiMapDef fObjectMap;            // TObjects for given pair<pair<event number, run,id>part>
+  std::map<std::pair<int,int>,int> mNofPartsPerEventMap;  // number of parts for pair<event number,run id>
+  MultiMapDef mObjectMap;            // TObjects for given pair<pair<event number, run,id>part>
   
-  std::pair<int, int> fEvRIPair;
-  std::pair<std::pair<int,int>,int> fEvRIPartTrio;
-  std::pair<MultiMapDef::iterator, MultiMapDef::iterator> fRet;
+  std::pair<int, int> mEvRIPair;
+  std::pair<std::pair<int,int>,int> mEvRIPartTrio;
+  std::pair<MultiMapDef::iterator, MultiMapDef::iterator> mRet;
 
-  std::string fInputChannelName;
-  std::string fOutputChannelName;
+  std::string mInputChannelName;
+  std::string mOutputChannelName;
 
-  int fNofReceivedMessages;
-  int fNofSentMessages;
+  int mNofReceivedMessages;
+  int mNofSentMessages;
 
   Merger(const Merger&);
   Merger& operator=(const Merger&);

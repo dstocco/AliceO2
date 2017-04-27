@@ -7,9 +7,9 @@
 
 #include "TVector3.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::Hit)
+ClassImp(o2::MFT::Hit)
 
 //_____________________________________________________________________________
 Hit::Hit() : 
@@ -27,6 +27,4 @@ Hit::Hit(Int_t detID, TVector3& pos, TVector3& dpos, Int_t mcindex) :
 
 //_____________________________________________________________________________
 Hit::~Hit()
-{
-
-}
+= default;

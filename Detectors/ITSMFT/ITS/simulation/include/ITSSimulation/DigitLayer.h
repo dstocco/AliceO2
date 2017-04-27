@@ -13,13 +13,13 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
   namespace ITSMFT {
     class Digit;
   }
 }
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class DigitStave;
@@ -33,16 +33,16 @@ class DigitLayer
 
     void Reset();
 
-    void SetDigit(AliceO2::ITSMFT::Digit *digi, Int_t stave, Int_t pixel);
+    void SetDigit(o2::ITSMFT::Digit *digi, Int_t stave, Int_t pixel);
 
-    AliceO2::ITSMFT::Digit *FindDigit(Int_t stave, Int_t pixel);
+    o2::ITSMFT::Digit *FindDigit(Int_t stave, Int_t pixel);
 
     void FillOutputContainer(TClonesArray *output);
 
   private:
-    Int_t fLayerID;           ///< Layer ID
-    Int_t fNStaves;           ///< Number of staves in Layer
-    DigitStave **fStaves;          ///< Container of staves
+    Int_t mLayerID;           ///< Layer ID
+    Int_t mNStaves;           ///< Number of staves in Layer
+    DigitStave **mStaves;          ///< Container of staves
 };
 }
 }

@@ -8,7 +8,7 @@
 
 #include "FairTrackParam.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class Track : public FairTrackParam
@@ -17,7 +17,7 @@ class Track : public FairTrackParam
  public:
 
   Track();
-  virtual ~Track();
+  ~Track() override;
 
   Track(const Track& track);
 
@@ -25,7 +25,7 @@ class Track : public FairTrackParam
 
   Track& operator=(const Track& track);
 
-  ClassDef(Track,1);
+  ClassDefOverride(Track,1);
 
 };
 

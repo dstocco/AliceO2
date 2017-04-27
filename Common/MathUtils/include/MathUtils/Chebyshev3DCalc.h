@@ -6,7 +6,7 @@
 #define ALICEO2_MATHUTILS_CHEBYSHEV3DCALC_H_
 
 #include <TNamed.h>  // for TNamed
-#include <stdio.h>   // for FILE, stdout
+#include <cstdio>   // for FILE, stdout
 #include "Rtypes.h"  // for Float_t, UShort_t, Int_t, Double_t, etc
 
 class TString;
@@ -19,8 +19,8 @@ class TString;
 // When _BRING_TO_BOUNDARY_ is defined, the point outside of the fitted folume is assumed to be on the surface
 // #define _BRING_TO_BOUNDARY_
 
-namespace AliceO2 {
-namespace MathUtils {
+namespace o2 {
+namespace mathUtils {
 class Chebyshev3DCalc : public TNamed
 {
 
@@ -36,7 +36,7 @@ class Chebyshev3DCalc : public TNamed
     Chebyshev3DCalc(FILE *stream);
 
     /// Default destructor
-    ~Chebyshev3DCalc()
+    ~Chebyshev3DCalc() override
     {
       Clear();
     }
@@ -45,7 +45,7 @@ class Chebyshev3DCalc : public TNamed
     Chebyshev3DCalc &operator=(const Chebyshev3DCalc &rhs);
 
     /// Prints info
-    void Print(const Option_t *opt = "") const;
+    void Print(const Option_t *opt = "") const override;
 
     /// Loads coefficients from the stream
     void loadData(FILE *stream);
@@ -133,7 +133,7 @@ class Chebyshev3DCalc : public TNamed
     }
 
     /// Deletes all dynamically allocated structures
-    void Clear(const Option_t *option = "");
+    void Clear(const Option_t *option = "") override;
 
     static Float_t chebyshevEvaluation1D(Float_t x, const Float_t *array, int ncf);
 
@@ -179,7 +179,7 @@ class Chebyshev3DCalc : public TNamed
     Float_t *mTemporaryCoefficients2D; //[mNumberOfColumns] temp. coeffs for 2d summation
     Float_t *mTemporaryCoefficients1D; //[mNumberOfRows] temp. coeffs for 1d summation
 
-    ClassDef(AliceO2::MathUtils::Chebyshev3DCalc,
+    ClassDefOverride(o2::mathUtils::Chebyshev3DCalc,
     2) // Class for interpolation of 3D->1 function by Chebyshev parametrization
 };
 

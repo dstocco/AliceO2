@@ -13,9 +13,9 @@
 #include <unordered_set>
 #include <chrono>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace Devices {
 
 /// Container for (sub-)timeframes
@@ -36,9 +36,9 @@ class EPNReceiver : public FairMQDevice
     EPNReceiver();
 
     /// Default destructor
-    virtual ~EPNReceiver();
+    ~EPNReceiver() override;
 
-    virtual void InitTask();
+    void InitTask() override;
 
     /// Prints the contents of the timeframe container
     void PrintBuffer(const std::unordered_map<uint16_t, TFBuffer> &buffer) const;
@@ -48,18 +48,18 @@ class EPNReceiver : public FairMQDevice
 
   protected:
     /// Overloads the Run() method of FairMQDevice
-    virtual void Run();
+    void Run() override;
 
-    std::unordered_map<uint16_t, TFBuffer> fTimeframeBuffer; ///< Stores (sub-)timeframes
-    std::unordered_set<uint16_t> fDiscardedSet; ///< Set containing IDs of dropped timeframes
+    std::unordered_map<uint16_t, TFBuffer> mTimeframeBuffer; ///< Stores (sub-)timeframes
+    std::unordered_set<uint16_t> mDiscardedSet; ///< Set containing IDs of dropped timeframes
 
-    int fNumFLPs; ///< Number of flpSenders
-    int fBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
-    int fTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
+    int mNumFLPs; ///< Number of flpSenders
+    int mBufferTimeoutInMs; ///< Time after which incomplete timeframes are dropped
+    int mTestMode; ///< Run the device in test mode (only syncSampler+flpSender+epnReceiver)
 
-    std::string fInChannelName;
-    std::string fOutChannelName;
-    std::string fAckChannelName;
+    std::string mInChannelName;
+    std::string mOutChannelName;
+    std::string mAckChannelName;
 };
 
 } // namespace Devices

@@ -9,8 +9,8 @@
 #include "FairFieldFactory.h"
 class FairField;
 
-namespace AliceO2 {
-  namespace Field {
+namespace o2 {
+  namespace field {
     
 class MagFieldParam;
 
@@ -19,18 +19,18 @@ class MagFieldFact : public FairFieldFactory
 
  public:
   MagFieldFact();
-  virtual ~MagFieldFact();
-  virtual FairField* createFairField();
-  virtual void SetParm();
+  ~MagFieldFact() override;
+  FairField* createFairField() override;
+  void SetParm() override;
   
  protected:
-  MagFieldParam* fFieldPar;
+  MagFieldParam* mFieldPar;
   
  private:
   MagFieldFact(const MagFieldFact&);
   MagFieldFact& operator=(const MagFieldFact&);
 
-  ClassDef(MagFieldFact,1)
+  ClassDefOverride(MagFieldFact,1)
 };
 
 }

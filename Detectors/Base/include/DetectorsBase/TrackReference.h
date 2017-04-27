@@ -9,7 +9,7 @@
 #include "TMath.h"       // for Pi, Sqrt, ATan2, Cos, Sin, ACos
 #include "TObject.h"     // for TObject
 
-namespace AliceO2 {
+namespace o2 {
 namespace Base {
 
 /// Track Reference object is created every time particle is
@@ -51,9 +51,8 @@ class TrackReference : public TObject
     TrackReference(const TrackReference &tr);
 
     /// Default Destructor
-    virtual ~TrackReference()
-    {
-    }
+    ~TrackReference()
+    override = default;
 
     // static AliExternalTrackParam * MakeTrack(const TrackReference *ref, Double_t mass);
     virtual Int_t GetTrack() const
@@ -213,7 +212,7 @@ class TrackReference : public TObject
       return kTRUE;
     }
 
-    Int_t Compare(const TObject *obj) const
+    Int_t Compare(const TObject *obj) const override
     {
       Int_t ll = ((TrackReference *) obj)->GetTrack();
       if (ll < mTrackNumber) {
@@ -225,7 +224,7 @@ class TrackReference : public TObject
       return 0;
     }
 
-    virtual void Print(Option_t *opt = "") const;
+    void Print(Option_t *opt = "") const override;
 
   protected:
     Int_t mTrackNumber;          ///< Track number
@@ -239,7 +238,7 @@ class TrackReference : public TObject
     Float_t mTof;                ///< time of flight in cm
     Int_t mUserId;               ///< optional Id defined by user
     Int_t mDetectorId;           ///< Detector Id
-  ClassDef(TrackReference, 1)  // Base class for all Alice track references
+  ClassDefOverride(TrackReference, 1)  // Base class for all Alice track references
 };
 }
 }

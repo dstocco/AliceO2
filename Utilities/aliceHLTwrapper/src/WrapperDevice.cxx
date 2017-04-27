@@ -17,8 +17,8 @@
 
 #include "aliceHLTwrapper/WrapperDevice.h"
 #include "aliceHLTwrapper/Component.h"
-#include "FairMQLogger.h"
-#include "FairMQPoller.h"
+#include <FairMQLogger.h>
+#include <FairMQPoller.h>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -42,11 +42,11 @@ using namespace ALICE::HLT;
 #ifdef USE_CHRONO
 #include <chrono>
 using std::chrono::system_clock;
-typedef std::chrono::milliseconds TimeScale;
+using TimeScale = std::chrono::milliseconds;
 #endif // USE_CHRONO
 
 WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
-  : mComponent(NULL)
+  : mComponent(nullptr)
   , mArgv()
   , mMessages()
   , mPollingPeriod(10)
@@ -64,8 +64,7 @@ WrapperDevice::WrapperDevice(int argc, char** argv, int verbosity)
 }
 
 WrapperDevice::~WrapperDevice()
-{
-}
+= default;
 
 void WrapperDevice::Init()
 {
@@ -174,7 +173,7 @@ void WrapperDevice::Run()
         mMaxTimeBetweenSample=sampleTimeDiff;
     }
     mLastSampleTime=duration.count();
-    if (duration.count()-mLastCalcTime>fLogIntervalInMs) {
+    if (duration.count()-mLastCalcTime>1000) {
       LOG(INFO) << "------ processed  " << mNSamples << " sample(s) - total " 
                 << mComponent->getEventCount() << " sample(s)";
       if (mNSamples > 0) {
@@ -194,11 +193,11 @@ void WrapperDevice::Run()
 
     if (!mSkipProcessing) {
       // prepare input from messages
-      vector<AliceO2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
+      vector<o2::AliceHLT::MessageFormat::BufferDesc_t> dataArray;
       for (vector<unique_ptr<FairMQMessage>>::iterator msg=inputMessages.begin();
            msg!=inputMessages.end(); msg++) {
         void* buffer=(*msg)->GetData();
-        dataArray.push_back(AliceO2::AliceHLT::MessageFormat::BufferDesc_t(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize()));
+        dataArray.emplace_back(reinterpret_cast<unsigned char*>(buffer), (*msg)->GetSize());
       }
 
       // create a signal with the callback to the buffer allocation, the component

@@ -1,16 +1,16 @@
 #ifndef TASKPROCESSOR_H_
 #define TASKPROCESSOR_H_
 
-#include "FairMQDevice.h"
-#include "FairMQParts.h"
-
-#include "MFTBase/EventHeader.h"
+#include <FairMQDevice.h>
+#include <FairMQParts.h>
 
 #include "TMessage.h"
 
+#include "MFTSimulation/EventHeader.h"
+
 class TList;
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
 
@@ -21,39 +21,39 @@ class TaskProcessor : public FairMQDevice
  public:
 
   TaskProcessor();
-  virtual ~TaskProcessor();
+  ~TaskProcessor() override;
 
-  void SetDataToKeep(std::string tStr) { fDataToKeep = tStr;}
+  void setDataToKeep(std::string tStr) { mDataToKeep = tStr;}
 
-  void SetInputChannelName (std::string tstr) {fInputChannelName = tstr;}
-  void SetOutputChannelName(std::string tstr) {fOutputChannelName = tstr;}
-  void SetParamChannelName (std::string tstr) {fParamChannelName  = tstr;}
+  void setInputChannelName (std::string tstr) {mInputChannelName = tstr;}
+  void setOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
+  void setParamChannelName (std::string tstr) {mParamChannelName  = tstr;}
 
  protected:
 
-  bool ProcessData(FairMQParts&, int);
-  virtual void Init();
-  virtual void PostRun();
+  bool processData(FairMQParts&, int);
+  void Init() override;
+  void PostRun() override;
 
  private:
   
-  std::string     fInputChannelName;
-  std::string     fOutputChannelName;
-  std::string     fParamChannelName;
+  std::string     mInputChannelName;
+  std::string     mOutputChannelName;
+  std::string     mParamChannelName;
   
-  EventHeader*     fEventHeader;
-  TList*           fInput;
-  TList*           fOutput;
+  EventHeader*     mEventHeader;
+  TList*           mInput;
+  TList*           mOutput;
   
-  int fNewRunId;
-  int fCurrentRunId;
+  int mNewRunId;
+  int mCurrentRunId;
   
-  std::string fDataToKeep;
+  std::string mDataToKeep;
   
-  int fReceivedMsgs = 0;
-  int fSentMsgs = 0;
+  int mReceivedMsgs = 0;
+  int mSentMsgs = 0;
 
-  T* fFairTask;
+  T* mFairTask;
 
   TaskProcessor(const TaskProcessor&);    
   TaskProcessor& operator=(const TaskProcessor&);    

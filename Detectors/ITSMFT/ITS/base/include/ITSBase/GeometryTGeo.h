@@ -14,7 +14,7 @@
 
 class TGeoPNEntry; // lines 17-17
 
-namespace AliceO2
+namespace o2
 {
   namespace ITSMFT
   {
@@ -22,7 +22,7 @@ namespace AliceO2
   }
 }
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {
@@ -57,7 +57,7 @@ class GeometryTGeo : public TObject
   GeometryTGeo(Bool_t build = kFALSE, Bool_t loadSegmentationsentations = kTRUE);
 
   /// Default destructor
-  virtual ~GeometryTGeo();
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src);
 
@@ -215,12 +215,12 @@ class GeometryTGeo : public TObject
 
   Int_t getChipChipTypeId(Int_t id) const;
 
-  const AliceO2::ITSMFT::Segmentation* getSegmentationById(Int_t id) const;
+  const o2::ITSMFT::Segmentation* getSegmentationById(Int_t id) const;
 
-  const AliceO2::ITSMFT::Segmentation* getSegmentation(Int_t lr) const;
+  const o2::ITSMFT::Segmentation* getSegmentation(Int_t lr) const;
 
   TObjArray* getSegmentations() const { return (TObjArray*)mSegmentations; }
-  virtual void Print(Option_t* opt = "") const;
+  void Print(Option_t* opt = "") const override;
 
   static UInt_t getUIDShift() { return mUIDShift; }
   static void setUIDShift(UInt_t s = 16) { mUIDShift = s < 16 ? s : 16; }
@@ -356,7 +356,7 @@ class GeometryTGeo : public TObject
 
   static TString mSegmentationFileName; ///< file name for segmentations
 
-  ClassDef(GeometryTGeo, 1) // ITS geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 1) // ITS geometry based on TGeo
 };
 
 /// Returns ymbolic name
@@ -482,15 +482,15 @@ inline void GeometryTGeo::setChipTypeName(Int_t i, const char* nm)
 }
 
 /// Get segmentation by ID
- inline const AliceO2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
+ inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentationById(Int_t id) const
 {
-  return mSegmentations ? (AliceO2::ITSMFT::Segmentation*)mSegmentations->At(id) : 0;
+  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(id) : nullptr;
 }
 
 /// Get segmentation of layer
- inline const AliceO2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
+ inline const o2::ITSMFT::Segmentation* GeometryTGeo::getSegmentation(Int_t lr) const
 {
-  return mSegmentations ? (AliceO2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : 0;
+  return mSegmentations ? (o2::ITSMFT::Segmentation*)mSegmentations->At(getLayerChipTypeId(lr)) : nullptr;
 }
 }
 }

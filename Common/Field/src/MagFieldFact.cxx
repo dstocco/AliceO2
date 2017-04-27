@@ -10,7 +10,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-using namespace AliceO2::Field;
+using namespace o2::field;
 
 
 ClassImp(MagFieldFact)
@@ -20,32 +20,31 @@ static MagFieldFact gMagFieldFact;
 
 MagFieldFact::MagFieldFact()
   :FairFieldFactory(),
-   fFieldPar(NULL)
+   mFieldPar(nullptr)
 {
 	fCreator=this;
 }
 
 MagFieldFact::~MagFieldFact()
-{
-}
+= default;
 
 void MagFieldFact::SetParm()
 {
   FairRunAna *Run = FairRunAna::Instance();
   FairRuntimeDb *RunDB = Run->GetRuntimeDb();
-  fFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
+  mFieldPar = (MagFieldParam*) RunDB->getContainer("MagFieldParam");
 }
 
 FairField* MagFieldFact::createFairField()
 { 
-  FairField *fMagneticField=0;
+  FairField *fMagneticField=nullptr;
   
-  if ( !fFieldPar ) {
+  if ( !mFieldPar ) {
     FairLogger::GetLogger()->Error(MESSAGE_ORIGIN, "No field parameters available");
-    return 0;
+    return nullptr;
   }
   // since we have just 1 field class, we don't need to consider fFieldPar->GetType()
-  fMagneticField = new MagneticField(*fFieldPar);
+  fMagneticField = new MagneticField(*mFieldPar);
   return fMagneticField;
 }
 

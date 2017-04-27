@@ -1,10 +1,10 @@
 #include "runFairMQDevice.h"
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/FindHits.h"
 #include "MFTReconstruction/devices/Sampler.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
 namespace bpo = boost::program_options;
 
@@ -28,14 +28,14 @@ FairMQDevicePtr getDevice(const FairMQProgOptions& config)
   std::vector<std::string> filename = config.GetValue<std::vector<std::string>>("file-name");
   std::vector<std::string> branchname = config.GetValue<std::vector<std::string>>("branch-name");
 
-  Sampler* sampler = new Sampler();
+  auto* sampler = new Sampler();
 
   for (UInt_t ielem = 0; ielem < filename.size(); ielem++) {
-    sampler->AddInputFileName(filename.at(ielem));
+    sampler->addInputFileName(filename.at(ielem));
   }
   
   for (UInt_t ielem = 0; ielem < branchname.size(); ielem++) {
-    sampler->AddInputBranchName(branchname.at(ielem));
+    sampler->addInputBranchName(branchname.at(ielem));
     LOG(INFO) << "Run::Sampler >>>>> add input branch " << branchname.at(ielem).c_str() << "";
   }
 

@@ -8,12 +8,12 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 #include "DetectorsBase/Constants.h"
 #include "DetectorsBase/Utils.h"
 
-namespace AliceO2 {
+namespace o2 {
   namespace Base {
     namespace Track {
 

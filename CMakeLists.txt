@@ -157,22 +157,16 @@ IF (PYTHIA8_FOUND AND Pythia6_FOUND)
   set(GENERATORS_LIBRARY Generators)
 ENDIF ()
 
-if(ALIROOT)
-  add_subdirectory(CCDB)
-endif(ALIROOT)
+add_subdirectory(CCDB)
 add_subdirectory(Common)
 add_subdirectory(DataFormats)
 add_subdirectory(Detectors)
 add_subdirectory(Examples)
-add_subdirectory(macro)
+if (GEANT4_FOUND AND GEANT3_FOUND)
+  add_subdirectory(macro)
+endif()
 add_subdirectory(Utilities)
-
-Option(BUILD_DOXYGEN "Build Doxygen" OFF)
-IF (BUILD_DOXYGEN)
-  MESSAGE(STATUS "Building the Doxygen documentation")
-  ADD_SUBDIRECTORY(docs)
-ENDIF (BUILD_DOXYGEN)
-
+add_subdirectory(doc)
 
 IF (IWYU_FOUND)
   ADD_CUSTOM_TARGET(checkHEADERS

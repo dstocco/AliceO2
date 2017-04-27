@@ -6,7 +6,7 @@
 #include <TObject.h>  // for TObject
 #include "Rtypes.h"   // for Int_t, Bool_t, IdRunRange::Class, ClassDef, etc
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 class IdRunRange : public TObject
 {
@@ -16,7 +16,7 @@ class IdRunRange : public TObject
 
     IdRunRange(Int_t firstRun, Int_t lastRun);
 
-    virtual ~IdRunRange();
+    ~IdRunRange() override;
 
     Int_t getFirstRun() const
     {
@@ -68,7 +68,7 @@ class IdRunRange : public TObject
 
     static const Int_t sInfinity = 999999999; //! Flag for "infinity"
 
-  ClassDef(IdRunRange, 1)
+  ClassDefOverride(IdRunRange, 1)
 };
 }
 }

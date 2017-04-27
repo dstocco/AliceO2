@@ -10,14 +10,14 @@
 #include "TObject.h"    // for TObject
 #include "TString.h"    // for TString
 
-namespace AliceO2 { namespace CDB { class Condition; }}  // lines 18-18
-namespace AliceO2 { namespace CDB { class ConditionId; }}
-namespace AliceO2 { namespace CDB { class ConditionMetaData; }}
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class Condition; }}  // lines 18-18
+namespace o2 { namespace CDB { class ConditionId; }}
+namespace o2 { namespace CDB { class ConditionMetaData; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
 class TFile;
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class Condition;
@@ -106,7 +106,7 @@ class Storage : public TObject
 
     virtual Bool_t idToFilename(const ConditionId &id, TString &filename) const = 0;
 
-    void queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = 0);
+    void queryStorages(Int_t run, const char *pathFilter = "*", Int_t version = -1, ConditionMetaData *mdFilter = nullptr);
 
     void printrQueryStorages();
 
@@ -118,7 +118,7 @@ class Storage : public TObject
     virtual void setRetry(Int_t nretry, Int_t initsec) = 0;
 
   protected:
-    virtual ~Storage();
+    ~Storage() override;
 
     void getSelection(/*const*/ ConditionId *id);
 
@@ -155,7 +155,7 @@ class Storage : public TObject
 
     Storage &operator=(const Storage &source);
 
-  ClassDef(Storage, 0)
+  ClassDefOverride(Storage, 0)
 };
 }
 }

@@ -3,31 +3,33 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 10/10/2016
 
+#include "ITSMFTSimulation/Point.h"
+
 #include "MFTBase/Constants.h"
-#include "MFTBase/EventHeader.h"
-#include "MFTSimulation/Point.h"
+#include "MFTBase/Geometry.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/FindHits.h"
 
 #include "TClonesArray.h"
 #include "TMath.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 #include "FairMCEventHeader.h"
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::FindHits)
+ClassImp(o2::MFT::FindHits)
 
 //_____________________________________________________________________________
 FindHits::FindHits():
-fPoints(NULL),
-fHits(NULL),
-fNHits(0),
-fTNofEvents(0),
-fTNofHits(0),
-fMCEventHeader(NULL),
-fEventHeader(NULL)
+mPoints(nullptr),
+mHits(nullptr),
+mNHits(0),
+mTNofEvents(0),
+mTNofHits(0),
+mMCEventHeader(nullptr),
+mEventHeader(nullptr)
 {
 
 }
@@ -36,10 +38,10 @@ fEventHeader(NULL)
 FindHits::~FindHits()
 {
 
-  Reset();
-  if (fHits) {
-    fHits->Delete();
-    delete fHits;
+  reset();
+  if (mHits) {
+    mHits->Delete();
+    delete mHits;
   }
 
 }
@@ -58,19 +60,19 @@ InitStatus FindHits::Init()
   }
 
   // Get input array
-  fPoints = static_cast<TClonesArray*>(ioman->GetObject("MFTPoints"));
-  if (!fPoints) {
+  mPoints = static_cast<TClonesArray*>(ioman->GetObject("MFTPoints"));
+  if (!mPoints) {
     //LOG(FATAL) << "No Point array!" << "";
     return kFATAL;
   }
 
   // Create and register output array
-  fHits = new TClonesArray("AliceO2::MFT::Hit");
-  ioman->Register("MFTHits", "MFT", fHits, kTRUE);
+  mHits = new TClonesArray("o2::MFT::Hit");
+  ioman->Register("MFTHits", "MFT", mHits, kTRUE);
 
-  fEventHeader = new EventHeader();
-  fEventHeader->SetName("EventHeader.");
-  ioman->Register("EventHeader.","EvtHeader", fEventHeader, kFALSE);
+  mEventHeader = new EventHeader();
+  mEventHeader->SetName("EventHeader.");
+  ioman->Register("EventHeader.","EvtHeader", mEventHeader, kFALSE);
 
   return kSUCCESS;
 
@@ -87,14 +89,14 @@ InitStatus FindHits::ReInit()
 }
 
 //_____________________________________________________________________________
-void FindHits::InitMQ(TList* tempList) 
+void FindHits::initMQ(TList* tempList) 
 {
 
   LOG(INFO) << "FindHits::InitMQ >>>>>" << "";
 
-  fEventHeader = new EventHeader();
-  fEventHeader->SetName("EventHeader.");
-  fHits = new TClonesArray("AliceO2::MFT::Hit",10000);
+  mEventHeader = new EventHeader();
+  mEventHeader->SetName("EventHeader.");
+  mHits = new TClonesArray("o2::MFT::Hit",10000);
 
   return;
 
@@ -107,54 +109,54 @@ void FindHits::Exec(Option_t* /*opt*/)
   //Info("Exec","Exec called",0,0);
   LOG(INFO) << "FindHits::Exec >>>>>" << "";
 
-  Reset();
+  reset();
 
-  AliceO2::MFT::Point *point;
+  o2::ITSMFT::Point *point;
   TVector3 pos, dpos;
   Int_t detID, trackID;
-  Double_t dx = Constants::kXPixelPitch/TMath::Sqrt(12);
-  Double_t dy = Constants::kYPixelPitch/TMath::Sqrt(12);
+  Double_t dx = Geometry::sXPixelPitch/TMath::Sqrt(12);
+  Double_t dy = Geometry::sYPixelPitch/TMath::Sqrt(12);
   Double_t dz = 0.;
 
   // Loop over fPoints
-  Int_t nPoints = fPoints->GetEntriesFast();
+  Int_t nPoints = mPoints->GetEntriesFast();
   for (Int_t iPoint = 0; iPoint < nPoints; iPoint++) {
-    point = static_cast<AliceO2::MFT::Point*>(fPoints->At(iPoint));
+    point = static_cast<o2::ITSMFT::Point*>(mPoints->At(iPoint));
     if (!point) continue;
     detID = point->GetDetectorID();
     trackID = point->GetTrackID();
     // copy the coordinates from point to hit
-    pos.SetXYZ(point->GetX(),point->GetY(),point->GetZ());
+    pos.SetXYZ(point->GetStartX(),point->GetStartY(),point->GetStartZ());
     dpos.SetXYZ(dx,dy,dz);
     //new ((*fHits)[nHits]) Hit(detID, pos, dpos, iPoint);
-    new ((*fHits)[fNHits]) Hit(detID, pos, dpos, trackID);
-    fNHits++;
+    new ((*mHits)[mNHits]) Hit(detID, pos, dpos, trackID);
+    mNHits++;
   }
 
-  LOG(INFO) << "Create " << fNHits << " hits out of "
+  LOG(INFO) << "Create " << mNHits << " hits out of "
             << nPoints << " points." << "";
 
-  fTNofEvents++;
-  fTNofHits += fNHits;
+  mTNofEvents++;
+  mTNofHits += mNHits;
 
 }
 
 //_____________________________________________________________________________
-void FindHits::ExecMQ(TList* inputList,TList* outputList) {
+void FindHits::execMQ(TList* inputList,TList* outputList) {
 
-  LOG(INFO) << "FindHits::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << fTNofEvents << "";
+  LOG(INFO) << "FindHits::ExecMQ >>>>> (" << inputList->GetName() << "," << outputList->GetName() << "), Event " << mTNofEvents << "";
 
-  fPoints = (TClonesArray*)inputList->FindObject("MFTPoints");
+  mPoints = (TClonesArray*)inputList->FindObject("MFTPoints");
 
-  outputList->Add(fHits);
+  outputList->Add(mHits);
 
   // use numbers from the MC event header ...
-  fMCEventHeader = (FairMCEventHeader*)inputList->FindObject("MCEventHeader.");
-  fEventHeader->SetRunId(fMCEventHeader->GetRunID());
-  fEventHeader->SetMCEntryNumber(fMCEventHeader->GetEventID());
-  fEventHeader->SetPartNo(fMCEventHeader->GetNPrim());
-  LOG(INFO) << "FindHits::ExecMQ >>>>> RunID " << fMCEventHeader->GetRunID() << " EventID " << fMCEventHeader->GetEventID() << " NPrim " << fMCEventHeader->GetNPrim() << "";
-  outputList->Add(fEventHeader);
+  mMCEventHeader = (FairMCEventHeader*)inputList->FindObject("MCEventHeader.");
+  mEventHeader->SetRunId(mMCEventHeader->GetRunID());
+  mEventHeader->SetMCEntryNumber(mMCEventHeader->GetEventID());
+  mEventHeader->setPartNo(mMCEventHeader->GetNPrim());
+  LOG(INFO) << "FindHits::ExecMQ >>>>> RunID " << mMCEventHeader->GetRunID() << " EventID " << mMCEventHeader->GetEventID() << " NPrim " << mMCEventHeader->GetNPrim() << "";
+  outputList->Add(mEventHeader);
 
   Exec("");
 
@@ -163,10 +165,10 @@ void FindHits::ExecMQ(TList* inputList,TList* outputList) {
 }
 
 //_____________________________________________________________________________
-void FindHits::Reset() 
+void FindHits::reset() 
 {
 
-  fNHits = 0;
-  if (fHits) fHits->Clear();
+  mNHits = 0;
+  if (mHits) mHits->Clear();
 
 }

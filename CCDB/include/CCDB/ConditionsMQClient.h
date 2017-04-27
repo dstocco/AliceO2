@@ -10,26 +10,26 @@
 
 #include <string>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class ConditionsMQClient : public FairMQDevice {
 public:
   ConditionsMQClient();
-  virtual ~ConditionsMQClient();
+  ~ConditionsMQClient() override;
 
 protected:
-  virtual void InitTask();
-  virtual void Run();
+  void InitTask() override;
+  void Run() override;
 
 private:
-  int fRunId;
-  std::string fParameterName;
-  std::string fOperationType;
-  std::string fDataSource;
-  std::string fObjectPath;
+  int mRunId;
+  std::string mParameterName;
+  std::string mOperationType;
+  std::string mDataSource;
+  std::string mObjectPath;
 
 };
 }

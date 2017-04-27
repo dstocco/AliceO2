@@ -4,12 +4,12 @@
 #include "ITSMFTBase/Segmentation.h"
 #include "TF1.h" // for TF1
 
-using namespace AliceO2::ITSMFT;
+using namespace o2::ITSMFT;
 
-ClassImp(AliceO2::ITSMFT::Segmentation)
+ClassImp(o2::ITSMFT::Segmentation)
 
   Segmentation::Segmentation()
-  : mDx(0), mDz(0), mDy(0), mCorrection(0)
+  : mDx(0), mDz(0), mDy(0), mCorrection(nullptr)
 {
 }
 
@@ -30,7 +30,7 @@ void Segmentation::Copy(TObject& obj) const
   if (mCorrection) {
     ((Segmentation&)obj).mCorrection = new TF1(*mCorrection); // make a proper copy
   } else {
-    ((Segmentation&)obj).mCorrection = 0;
+    ((Segmentation&)obj).mCorrection = nullptr;
   }
 }
 
@@ -43,7 +43,7 @@ Segmentation& Segmentation::operator=(const Segmentation& source)
   return *this;
 }
 
-Segmentation::Segmentation(const Segmentation& source) : TObject(source), mDx(0), mDz(0), mDy(0), mCorrection(0)
+Segmentation::Segmentation(const Segmentation& source) : TObject(source), mDx(0), mDz(0), mDy(0), mCorrection(nullptr)
 {
   // copy constructor
   source.Copy(*this);

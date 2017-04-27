@@ -22,13 +22,9 @@
 #include <cstring>
 #include <sstream>
 #include <cerrno>
-#ifdef NANOMSG
-#include "FairMQTransportFactoryNN.h"
-#endif
-#include "FairMQTransportFactoryZMQ.h"
-#include "FairMQTools.h"
+#include <tools/FairMQTools.h>
 
-#include "FairMQStateMachine.h"
+#include <FairMQStateMachine.h>
 #if defined(FAIRMQ_INTERFACE_VERSION) && FAIRMQ_INTERFACE_VERSION > 0
 // FairMQStateMachine interface supports strings as argument for the
 // ChangeState function from interface version 1 introduced Feb 2015
@@ -54,8 +50,12 @@
 #include <boost/chrono.hpp>
 
 using std::cout;
+using std::endl;
 using std::cerr;
+using std::string;
 using std::stringstream;
+using std::ostream;
+using std::vector;
 
 struct SocketProperties_t {
   std::string type;
@@ -80,16 +80,7 @@ struct SocketProperties_t {
     , validParams(0)
   {}
   SocketProperties_t(const SocketProperties_t& other)
-    : type(other.type)
-    , size(other.size)
-    , method(other.method)
-    , address(other.address)
-    , ddsprop(other.ddsprop)
-    , ddscount(other.ddscount)
-    , ddsminport(other.ddsminport)
-    , ddsmaxport(other.ddsmaxport)
-    , validParams(other.validParams)
-  {}
+    = default;
 };
 
 ostream& operator<<(ostream &out, const SocketProperties_t& me)
@@ -107,7 +98,7 @@ ostream& operator<<(ostream &out, const SocketProperties_t& me)
   return out;
 }
 
-FairMQDevice* gDevice = NULL;
+FairMQDevice* gDevice = nullptr;
 
 int preprocessSockets(vector<SocketProperties_t>& sockets);
 int preprocessSocketsDDS(vector<SocketProperties_t>& sockets, std::string networkPrefix="");
@@ -140,7 +131,7 @@ int readSocketPropertiesDDS(vector<SocketProperties_t>& sockets);
     /*[MAXPORT]   = */ "max-port",
     /*[DDSGLOBAL] = */ "global",
     /*[DDSLOCAL]  = */ "local",
-    NULL
+    nullptr
   };
 
 
@@ -169,17 +160,17 @@ int main(int argc, char** argv)
   bool bInteractive = false;
 
   static struct option programOptions[] = {
-    { "input",       required_argument, 0, 'i' }, // input socket
-    { "output",      required_argument, 0, 'o' }, // output socket
-    { "factory-type",required_argument, 0, 'f' }, // type of the factory "zmq", "nanomsg"
-    { "verbosity",   required_argument, 0, 'v' }, // verbosity
-    { "loginterval", required_argument, 0, 'l' }, // logging interval
-    { "poll-period", required_argument, 0, 'p' }, // polling period of the device in ms
-    { "dry-run",     no_argument      , 0, 'n' }, // skip the component processing
-    { "dds",         no_argument      , 0, 'd' }, // run in dds mode
-    { "timeout",     required_argument, 0, 't' }, // polling period of the device in ms
-    { "interactive", no_argument      , 0, 'x' }, // enter interactive mode (from terminal only)
-    { 0, 0, 0, 0 }
+    { "input",       required_argument, nullptr, 'i' }, // input socket
+    { "output",      required_argument, nullptr, 'o' }, // output socket
+    { "factory-type",required_argument, nullptr, 'f' }, // type of the factory "zmq", "nanomsg"
+    { "verbosity",   required_argument, nullptr, 'v' }, // verbosity
+    { "loginterval", required_argument, nullptr, 'l' }, // logging interval
+    { "poll-period", required_argument, nullptr, 'p' }, // polling period of the device in ms
+    { "dry-run",     no_argument      , nullptr, 'n' }, // skip the component processing
+    { "dds",         no_argument      , nullptr, 'd' }, // run in dds mode
+    { "timeout",     required_argument, nullptr, 't' }, // polling period of the device in ms
+    { "interactive", no_argument      , nullptr, 'x' }, // enter interactive mode (from terminal only)
+    { nullptr, 0, nullptr, 0 }
   };
 
   char c = 0;
@@ -193,9 +184,9 @@ int main(int argc, char** argv)
   // two colons after the option indicate an optional argument
   std::string optstring = "-";
   for (struct option* programOption = programOptions;
-       programOption != NULL && programOption->name != NULL;
+       programOption != nullptr && programOption->name != nullptr;
        programOption++) {
-    if (programOption->flag == NULL) {
+    if (programOption->flag == nullptr) {
       // programOption->val uniquely identifies particular long option
       optstring += ((char)programOption->val);
       if (programOption->has_arg == required_argument) optstring += ":";  // one colon to indicate required argument
@@ -212,7 +203,7 @@ int main(int argc, char** argv)
       case 'i':
       case 'o': {
         char* subopts = optarg;
-        char* value = NULL;
+        char* value = nullptr;
         int keynum = 0;
         SocketProperties_t prop;
         while (subopts && *subopts != 0 && *subopts != ' ') {
@@ -342,16 +333,11 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  FairMQTransportFactory* transportFactory = NULL;
+  std::string transport;
   if (strcmp(factoryType, "nanomsg") == 0) {
-#ifdef NANOMSG
-    transportFactory = new FairMQTransportFactoryNN();
-#else
-    cerr << "can not create factory for NANOMSG: not enabled in build" << endl;
-    return -ENODEV;
-#endif
+    transport = "nanomsg";
   } else if (strcmp(factoryType, "zmq") == 0) {
-    transportFactory = new FairMQTransportFactoryZMQ();
+    transport = "zeromq";
   } else {
     cerr << "invalid factory type: " << factoryType << endl;
     return -ENODEV;
@@ -382,10 +368,10 @@ int main(int argc, char** argv)
   { // scope for the device reference variable
     FairMQDevice& device = *gDevice;
 
-    device.SetTransport(transportFactory);
+    device.SetTransport(transport);
     device.SetProperty(FairMQDevice::Id, id.c_str());
     device.SetProperty(FairMQDevice::NumIoThreads, numIoThreads);
-    device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
+    // device.SetProperty(FairMQDevice::LogIntervalInMs, deviceLogInterval);
     if (pollingPeriod > 0) device.SetProperty(ALICE::HLT::WrapperDevice::PollingPeriod, pollingPeriod);
     if (skipProcessing) device.SetProperty(ALICE::HLT::WrapperDevice::SkipProcessing, skipProcessing);
     for (unsigned iInput = 0; iInput < numInputs; iInput++) {
@@ -503,7 +489,7 @@ int main(int argc, char** argv)
   } // scope for the device reference variable
 
   FairMQDevice* almostdead = gDevice;
-  gDevice = NULL;
+  gDevice = nullptr;
   delete almostdead;
 
   return iResult;

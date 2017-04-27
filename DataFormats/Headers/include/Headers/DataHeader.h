@@ -21,9 +21,10 @@
 #define ALICEO2_BASE_DATA_HEADER_
 
 #include <cstdint>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <memory>
+#include <cassert>
 
 // enum class byte : unsigned char
 // {
@@ -31,7 +32,7 @@
 /// @typedef define a byte type
 using byte = unsigned char;
 
-namespace AliceO2 {
+namespace o2 {
 namespace Header {
 
 //__________________________________________________________________________________________________
@@ -225,16 +226,39 @@ struct Descriptor {
     char     str[N];
     ItgType  itg; // for extension > 64 bit: [arraySize];
   };
-  Descriptor() {};
-  Descriptor(const Descriptor& other) : itg(other.itg) {}
+  constexpr Descriptor() : itg(0) {};
+  constexpr Descriptor(ItgType initializer) : itg(initializer) {};
+  constexpr Descriptor(const Descriptor& other) : itg(other.itg) {}
   Descriptor& operator=(const Descriptor& other) {
     if (&other != this) itg = other.itg;
     return *this;
   }
-  // note: no operator=(const char*) as this potentially runs into trouble with this
-  // general pointer type, use: somedescriptor = Descriptor("DESCRIPTION")
+  // Note: don't need to define operator=(ItgType v) because the compiler
+  // can use Descriptor(ItgType initializer) for conversion
+
+  // type cast operator for simplified usage of the descriptor's integer member
+  operator ItgType() const {return itg;}
+
+  /// constructor from a compile-time string
   template<std::size_t NN>
   constexpr Descriptor(const char (&origin)[NN]) : itg(String2<ItgType>(origin)) {};
+
+  /// Init descriptor from string at runtime
+  /// In contrast to all other functions which are fixed at compile time, this is
+  /// available at runtime and must be used with care
+  ///
+  /// Note: no assignment operator operator=(const char*) as this potentially runs
+  /// into trouble with this general pointer type.
+  void runtimeInit(const char* string) {
+    char* target = str;
+    char* targetEnd = target + N;
+    const char* source = string;
+    for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    for ( ; target < targetEnd; ++target) *target = 0;
+    // require the string to be maximum the descriptor size
+    assert(source != nullptr && *source == 0);
+  }
+
   bool operator==(const Descriptor& other) const {return itg == other.itg;}
   bool operator!=(const Descriptor& other) const {return not this->operator==(other);}
   // print function needs to be implemented for every derivation
@@ -278,11 +302,11 @@ struct SerializationMethod {
 };
 
 //possible serialization types
-extern const AliceO2::Header::SerializationMethod gSerializationMethodAny;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodInvalid;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodNone;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodROOT;
-extern const AliceO2::Header::SerializationMethod gSerializationMethodFlatBuf;
+extern const o2::Header::SerializationMethod gSerializationMethodAny;
+extern const o2::Header::SerializationMethod gSerializationMethodInvalid;
+extern const o2::Header::SerializationMethod gSerializationMethodNone;
+extern const o2::Header::SerializationMethod gSerializationMethodROOT;
+extern const o2::Header::SerializationMethod gSerializationMethodFlatBuf;
 
 //__________________________________________________________________________________________________
 /// @struct BaseHeader
@@ -308,8 +332,8 @@ struct BaseHeader
   static const uint32_t sMagicString;
 
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
 
   //__the data layout:
 
@@ -336,10 +360,10 @@ struct BaseHeader
   uint32_t    headerVersion;
 
   /// header type description, set by derived header
-  AliceO2::Header::HeaderType description;
+  o2::Header::HeaderType description;
 
   /// header serialization method, set by derived header
-  AliceO2::Header::SerializationMethod serialization;
+  o2::Header::SerializationMethod serialization;
 
   //___the functions:
 
@@ -387,9 +411,14 @@ const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
   return nullptr;
 }
 
+template<typename HeaderType>
+const HeaderType* get(const void* buffer, size_t len=0) {
+  return get<HeaderType>(reinterpret_cast<const byte *>(buffer), len);
+}
+
 //__________________________________________________________________________________________________
-/// @struct Block
-/// @brief a move-only header block with serialized headers
+/// @struct Stack
+/// @brief a move-only header stack with serialized headers
 /// This is the flat buffer where all the headers in a multi-header go.
 /// This guy knows how to move the serialized content to FairMQ
 /// and inform it how to release when all is sent.
@@ -397,10 +426,10 @@ const HeaderType* get(const byte* buffer, size_t /*len*/=0) {
 /// intended use:
 ///   - as a variadic intializer list (as an argument to a function)
 ///
-///   One can also use Block::compose(const T& header1, const T& header2, ...)
+///   One can also use Stack::compose(const T& header1, const T& header2, ...)
 ///   - T are derived from BaseHeader, arbirtary number of arguments/headers
 ///   - return is a unique_ptr holding the serialized buffer ready to be shipped.
-struct Block {
+struct Stack {
 
   // This is ugly and needs fixing BUT:
   // we need a static deleter for fairmq.
@@ -409,7 +438,7 @@ struct Block {
   using Buffer = std::unique_ptr<byte[]>;
   static std::default_delete<byte[]> sDeleter;
   static void freefn(void* /*data*/, void* hint) {
-    Block::sDeleter(static_cast<byte*>(hint));
+    Stack::sDeleter(static_cast<byte*>(hint));
   }
 
   size_t bufferSize;
@@ -424,23 +453,23 @@ struct Block {
   /// TODO: maybe add a static_assert requiring first arg to be DataHeader
   /// or maybe even require all these to be derived form BaseHeader
   template<typename... Headers>
-  Block(Headers... headers)
+  Stack(const Headers&... headers)
     : bufferSize{size(headers...)}
     , buffer{new byte[bufferSize]}
   {
     inject(buffer.get(), headers...);
   }
-  Block() = default;
-  Block(Block&&) = default;
-  Block(Block&) = delete;
-  Block& operator=(Block&) = delete;
-  Block& operator=(Block&&) = default;
+  Stack() = default;
+  Stack(Stack&&) = default;
+  Stack(Stack&) = delete;
+  Stack& operator=(Stack&) = delete;
+  Stack& operator=(Stack&&) = default;
 
   /// the magic compose - serialize (almost) anything into the buffer
   /// (works with headers, strings and arrays)
   template<typename... Args>
-  static Block compose(const Args... args) {
-    Block b;
+  static Stack compose(const Args&... args) {
+    Stack b;
     b.bufferSize = size(args...);
     b.buffer.reset(new byte[b.bufferSize]);
     inject(b.buffer.get(), args...);
@@ -483,8 +512,8 @@ private:
 template <size_t N>
 struct NameHeader : public BaseHeader {
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
   NameHeader()
   : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion)
   , name()
@@ -511,12 +540,12 @@ private:
 };
 
 template <size_t N>
-const AliceO2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
+const o2::Header::HeaderType NameHeader<N>::sHeaderType = "NameHead";
 
 // dirty trick to always have access to the headertypeID of a templated header type
 // TODO: find out if this can be done in a nicer way + is this realy necessary?
 template <>
-const AliceO2::Header::HeaderType NameHeader<0>::sHeaderType;
+const o2::Header::HeaderType NameHeader<0>::sHeaderType;
 
 template <size_t N>
 const SerializationMethod NameHeader<N>::sSerializationMethod = gSerializationMethodNone;
@@ -527,8 +556,9 @@ const uint32_t NameHeader<N>::sVersion = 1;
 //__________________________________________________________________________________________________
 /// this 128 bit type for a header field describing the payload data type
 struct DataDescription {
+  static const std::size_t N = gSizeDataDescriptionString;
   union {
-    char     str[gSizeDataDescriptionString];
+    char     str[N];
     uint64_t itg[2];
   };
   DataDescription();
@@ -542,8 +572,8 @@ struct DataDescription {
   }
   // note: no operator=(const char*) as this potentially runs into trouble with this
   // general pointer type, use: somedesc = DataDescription("SOMEDESCRIPTION")
-  template<std::size_t N>
-  constexpr DataDescription(const char (&desc)[N]) : itg{String2<uint64_t, N, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, N, std::conditional< (N > 8), Internal::intWrapper<8>, Internal::intWrapper<N-1>>::type::value >(desc) : 0)} {
+  template<std::size_t NN>
+  constexpr DataDescription(const char (&desc)[NN]) : itg{String2<uint64_t, NN, 0, true>(desc), (Internal::strLength(desc) > 8 ? String2<uint64_t, NN, std::conditional< (NN > 8), Internal::intWrapper<8>, Internal::intWrapper<0>>::type::value >(desc) : 0)} {
     // the initializer implements a number of compile time checks
     // - for the conversion of the first part of the string to the first 64bit field
     //   the check for the string length needs to be disabled as it is naturally longer
@@ -556,6 +586,23 @@ struct DataDescription {
     // - it's probably given that N > 0
     static_assert(N > 0, "Strange error, that should not happen at all");
   }
+
+  /// Init from string at runtime
+  /// In contrast to all other functions which are fixed at compile time, this is
+  /// available at runtime and must be used with care
+  ///
+  /// Note: no assignment operator operator=(const char*) as this potentially runs
+  /// into trouble with this general pointer type.
+  void runtimeInit(const char* string) {
+    char* target = str;
+    char* targetEnd = target + N;
+    const char* source = string;
+    for ( ; source != nullptr && target < targetEnd && *source !=0; ++target, ++source) *target = *source;
+    for ( ; target < targetEnd; ++target) *target = 0;
+    // require the string to be maximum the descriptor size
+    assert(source != nullptr && *source == 0);
+  }
+
   bool operator==(const DataDescription&) const;
   bool operator!=(const DataDescription& other) const {return not this->operator==(other);}
   void print() const;
@@ -573,7 +620,7 @@ typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 /// @brief the main header struct
 ///
 /// The main O2 data header struct. All messages should have it, preferably at the beginning
-/// of the header block.
+/// of the header stack.
 /// It contains the fields that describe the buffer size, data type,
 /// origin and serialization method used to construct the buffer.
 /// The member subSpecification might be defined differently for each type/origin,
@@ -582,10 +629,13 @@ typedef Descriptor<gSizeDataOriginString, printDataOrigin> DataOrigin;
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataHeader : public BaseHeader
 {
+  // allows DataHeader::SubSpecificationType to be used as generic type in the code
+  typedef uint64_t SubSpecificationType;
+
   //static data for this header type/version
   static const uint32_t sVersion;
-  static const AliceO2::Header::HeaderType sHeaderType;
-  static const AliceO2::Header::SerializationMethod sSerializationMethod;
+  static const o2::Header::HeaderType sHeaderType;
+  static const o2::Header::SerializationMethod sSerializationMethod;
 
   ///
   /// data type descriptor
@@ -611,7 +661,7 @@ struct DataHeader : public BaseHeader
   ///
   /// sub specification (e.g. link number)
   ///
-  uint64_t    subSpecification;
+  SubSpecificationType subSpecification;
 
   ///
   /// size of the associated data
@@ -647,20 +697,20 @@ struct DataHeader : public BaseHeader
 
 //__________________________________________________________________________________________________
 //possible data origins
-extern const AliceO2::Header::DataOrigin gDataOriginAny;
-extern const AliceO2::Header::DataOrigin gDataOriginInvalid;
-extern const AliceO2::Header::DataOrigin gDataOriginTPC;
-extern const AliceO2::Header::DataOrigin gDataOriginTRD;
-extern const AliceO2::Header::DataOrigin gDataOriginTOF;
+extern const o2::Header::DataOrigin gDataOriginAny;
+extern const o2::Header::DataOrigin gDataOriginInvalid;
+extern const o2::Header::DataOrigin gDataOriginTPC;
+extern const o2::Header::DataOrigin gDataOriginTRD;
+extern const o2::Header::DataOrigin gDataOriginTOF;
 
 //possible data types
-extern const AliceO2::Header::DataDescription gDataDescriptionAny;
-extern const AliceO2::Header::DataDescription gDataDescriptionInvalid;
-extern const AliceO2::Header::DataDescription gDataDescriptionRawData;
-extern const AliceO2::Header::DataDescription gDataDescriptionClusters;
-extern const AliceO2::Header::DataDescription gDataDescriptionTracks;
-extern const AliceO2::Header::DataDescription gDataDescriptionConfig;
-extern const AliceO2::Header::DataDescription gDataDescriptionInfo;
+extern const o2::Header::DataDescription gDataDescriptionAny;
+extern const o2::Header::DataDescription gDataDescriptionInvalid;
+extern const o2::Header::DataDescription gDataDescriptionRawData;
+extern const o2::Header::DataDescription gDataDescriptionClusters;
+extern const o2::Header::DataDescription gDataDescriptionTracks;
+extern const o2::Header::DataDescription gDataDescriptionConfig;
+extern const o2::Header::DataDescription gDataDescriptionInfo;
 /// @} // end of doxygen group
 
 //__________________________________________________________________________________________________

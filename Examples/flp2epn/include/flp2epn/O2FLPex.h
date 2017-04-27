@@ -8,20 +8,20 @@
 #ifndef O2FLPEX_H_
 #define O2FLPEX_H_
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 class O2FLPex : public FairMQDevice
 {
   public:
     O2FLPex();
 
-    virtual ~O2FLPex();
+    ~O2FLPex() override;
 
   protected:
     int fNumContent;
 
-    virtual void InitTask();
-    virtual bool ConditionalRun();
+    void InitTask() override;
+    bool ConditionalRun() override;
 };
 
 #endif

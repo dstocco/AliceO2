@@ -14,8 +14,8 @@
 
 class FairLogger;  // lines 16-16
 
-namespace AliceO2 {
-namespace Field {
+namespace o2 {
+namespace field {
 
 ///  Wrapper for the set of mag.field parameterizations by Chebyshev polinomials
 ///  To obtain the field in cartesian coordinates/components use
@@ -48,7 +48,7 @@ class MagneticWrapperChebyshev : public TNamed
     /// Copy constructor
     MagneticWrapperChebyshev(const MagneticWrapperChebyshev &src);
 
-    ~MagneticWrapperChebyshev()
+    ~MagneticWrapperChebyshev() override
     {
       Clear();
     }
@@ -60,7 +60,7 @@ class MagneticWrapperChebyshev : public TNamed
     MagneticWrapperChebyshev &operator=(const MagneticWrapperChebyshev &rhs);
 
     /// Clears all dynamic parts
-    virtual void Clear(const Option_t * = "");
+    void Clear(const Option_t * = "") override;
 
     Int_t getNumberOfParametersSol() const
     {
@@ -172,28 +172,28 @@ class MagneticWrapperChebyshev : public TNamed
       return mMaxRadiusTPCRat;
     }
 
-    AliceO2::MathUtils::Chebyshev3D *getParameterSolenoid(Int_t ipar) const
+    o2::mathUtils::Chebyshev3D *getParameterSolenoid(Int_t ipar) const
     {
-      return (AliceO2::MathUtils::Chebyshev3D *) mParameterizationSolenoid->UncheckedAt(ipar);
+      return (o2::mathUtils::Chebyshev3D *) mParameterizationSolenoid->UncheckedAt(ipar);
     }
 
-    AliceO2::MathUtils::Chebyshev3D *getParameterTPCRatIntegral(Int_t ipar) const
+    o2::mathUtils::Chebyshev3D *getParameterTPCRatIntegral(Int_t ipar) const
     {
-      return (AliceO2::MathUtils::Chebyshev3D *) mParameterizationTPCRat->UncheckedAt(ipar);
+      return (o2::mathUtils::Chebyshev3D *) mParameterizationTPCRat->UncheckedAt(ipar);
     }
 
-    AliceO2::MathUtils::Chebyshev3D *getParameterTPCIntegral(Int_t ipar) const
+    o2::mathUtils::Chebyshev3D *getParameterTPCIntegral(Int_t ipar) const
     {
-      return (AliceO2::MathUtils::Chebyshev3D *) mParameterizationTPC->UncheckedAt(ipar);
+      return (o2::mathUtils::Chebyshev3D *) mParameterizationTPC->UncheckedAt(ipar);
     }
 
-    AliceO2::MathUtils::Chebyshev3D *getParameterDipole(Int_t ipar) const
+    o2::mathUtils::Chebyshev3D *getParameterDipole(Int_t ipar) const
     {
-      return (AliceO2::MathUtils::Chebyshev3D *) mParameterizationDipole->UncheckedAt(ipar);
+      return (o2::mathUtils::Chebyshev3D *) mParameterizationDipole->UncheckedAt(ipar);
     }
 
     /// Prints info
-    virtual void Print(Option_t * = "") const;
+    void Print(Option_t * = "") const override;
 
     /// Computes field in cartesian coordinates. If point is outside of the parameterized region
     /// it gets it at closest valid point
@@ -262,18 +262,18 @@ class MagneticWrapperChebyshev : public TNamed
 
     /// Adds new parameterization piece for Solenoid
     /// NOTE: pieces must be added strictly in increasing R then increasing Z order
-    void addParameterSolenoid(const AliceO2::MathUtils::Chebyshev3D* param);
+    void addParameterSolenoid(const o2::mathUtils::Chebyshev3D* param);
 
     // Adds new parameterization piece for TPCIntegral
     // NOTE: pieces must be added strictly in increasing R then increasing Z order
 
-    void addParameterTPCIntegral(const AliceO2::MathUtils::Chebyshev3D* param);
+    void addParameterTPCIntegral(const o2::mathUtils::Chebyshev3D* param);
     /// Adds new parameterization piece for TPCRatInt
     // NOTE: pieces must be added strictly in increasing R then increasing Z order
-    void addParameterTPCRatIntegral(const AliceO2::MathUtils::Chebyshev3D* param);
+    void addParameterTPCRatIntegral(const o2::mathUtils::Chebyshev3D* param);
 
     /// Adds new parameterization piece for Dipole
-    void addParameterDipole(const AliceO2::MathUtils::Chebyshev3D* param);
+    void addParameterDipole(const o2::mathUtils::Chebyshev3D* param);
 
     /// Builds lookup table for dipole
     void buildTable(Int_t npar, TObjArray* parArr, Int_t& nZSeg, Int_t& nYSeg, Int_t& nXSeg, Float_t& minZ, Float_t& maxZ,
@@ -404,7 +404,7 @@ class MagneticWrapperChebyshev : public TNamed
     TObjArray *mParameterizationDipole; ///< Parameterization pieces for Dipole field
 
     FairLogger *mLogger; //!
-    ClassDef(AliceO2::Field::MagneticWrapperChebyshev,
+    ClassDefOverride(o2::field::MagneticWrapperChebyshev,
     2) // Wrapper class for the set of Chebishev parameterizations of Alice mag.field
 };
 

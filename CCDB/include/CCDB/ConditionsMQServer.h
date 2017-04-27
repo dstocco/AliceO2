@@ -13,21 +13,21 @@
 #include "CCDB/Manager.h"
 #include "ParameterMQServer.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class ConditionsMQServer : public ParameterMQServer {
 public:
   ConditionsMQServer();
 
-  virtual ~ConditionsMQServer();
+  ~ConditionsMQServer() override;
 
-  virtual void Run();
+  void Run() override;
 
-  virtual void InitTask();
+  void InitTask() override;
 
 private:
-  Manager* fCdbManager;
+  Manager* mCdbManager;
 
   void getFromOCDB(std::string key);
 

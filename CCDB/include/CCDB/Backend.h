@@ -8,18 +8,18 @@
 #include <string>
 #include <vector>
 
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
 // Google protocol buffers headers
 #include <google/protobuf/stubs/common.h>
 #include "request.pb.h"
 
-namespace AliceO2 {
+namespace o2 {
 namespace CDB {
 
 class Backend {
 public:
-  virtual ~Backend(){};
+  virtual ~Backend()= default;
 
   /// Pack
   virtual void Pack(const std::string& path, const std::string& key, std::string*& messageString) = 0;

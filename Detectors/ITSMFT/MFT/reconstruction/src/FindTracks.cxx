@@ -3,7 +3,7 @@
 /// \author bogdan.vulpescu@cern.ch 
 /// \date 07/10/2016
 
-#include "MFTBase/EventHeader.h"
+#include "MFTSimulation/EventHeader.h"
 #include "MFTReconstruction/Hit.h"
 #include "MFTReconstruction/Track.h"
 #include "MFTReconstruction/FindTracks.h"
@@ -12,22 +12,22 @@
 #include "TF1.h"
 #include "TGraphErrors.h"
 
-#include "FairMQLogger.h"
+#include <FairMQLogger.h>
 
-using namespace AliceO2::MFT;
+using namespace o2::MFT;
 
-ClassImp(AliceO2::MFT::FindTracks)
+ClassImp(o2::MFT::FindTracks)
 
 //_____________________________________________________________________________
 FindTracks::FindTracks():
-fHits(NULL),
-fTracks(NULL),
-fNHits(0),
-fNTracks(0),
-fTNofEvents(0),
-fTNofHits(0),
-fTNofTracks(0),
-fEventHeader(NULL)
+mHits(nullptr),
+mTracks(nullptr),
+mNHits(0),
+mNTracks(0),
+mTNofEvents(0),
+mTNofHits(0),
+mTNofTracks(0),
+mEventHeader(nullptr)
 {
 
 }
@@ -35,14 +35,14 @@ fEventHeader(NULL)
 //_____________________________________________________________________________
 FindTracks::FindTracks(Int_t iVerbose)
   : FairTask("MFT Track Finder", iVerbose),
-    fHits(NULL),
-    fTracks(NULL),
-    fNHits(0),
-    fNTracks(0),
-    fTNofEvents(0),
-    fTNofHits(0),
-    fTNofTracks(0),
-    fEventHeader(NULL)
+    mHits(nullptr),
+    mTracks(nullptr),
+    mNHits(0),
+    mNTracks(0),
+    mTNofEvents(0),
+    mTNofHits(0),
+    mTNofTracks(0),
+    mEventHeader(nullptr)
 {
 
 }
@@ -51,10 +51,10 @@ FindTracks::FindTracks(Int_t iVerbose)
 FindTracks::~FindTracks()
 {
 
-  Reset();
-  if (fTracks) {
-    fTracks->Delete();
-    delete fTracks;
+  reset();
+  if (mTracks) {
+    mTracks->Delete();
+    delete mTracks;
   }
 
 }
@@ -73,15 +73,15 @@ InitStatus FindTracks::Init()
   }
 
   // Get a pointer to the previous already existing data level
-  fHits = static_cast<TClonesArray*>(ioman->GetObject("MFTHits"));
-  if ( ! fHits ) {
+  mHits = static_cast<TClonesArray*>(ioman->GetObject("MFTHits"));
+  if ( ! mHits ) {
     LOG(ERROR) << "FindTracks::Init >>>>> No InputDataLevelName array! "
                << "FindTracks will be inactive" << "";
     return kERROR;
   }
 
-  fTracks = new TClonesArray("AliceO2::MFT::Track", 100);
-  ioman->Register("MFTTracks","MFT",fTracks,kTRUE);
+  mTracks = new TClonesArray("o2::MFT::Track", 100);
+  ioman->Register("MFTTracks","MFT",mTracks,kTRUE);
 
   // Do whatever else is needed at the initilization stage
   // Create histograms to be filled
@@ -102,13 +102,13 @@ InitStatus FindTracks::ReInit()
 }
 
 //_____________________________________________________________________________
-void FindTracks::InitMQ(TList* tempList) 
+void FindTracks::initMQ(TList* tempList) 
 {
 
-  LOG(INFO) << "FindTracks::InitMQ >>>>>" << "";
+  LOG(INFO) << "FindTracks::initMQ >>>>>" << "";
 
-  fTracks = new TClonesArray("AliceO2::MFT::Track",10000);
-  fTracks->Dump();
+  mTracks = new TClonesArray("o2::MFT::Track",10000);
+  mTracks->Dump();
 
   return;
 
@@ -121,29 +121,29 @@ void FindTracks::Exec(Option_t* /*opt*/)
   //Info("Exec","Exec called",0,0);
   LOG(INFO) << "FindTracks::Exec >>>>>" << "";
 
-  Reset();
+  reset();
 
   const Int_t nMaxTracks = 1000;
-  fNHits = fHits->GetEntriesFast();
+  mNHits = mHits->GetEntriesFast();
 
-  Float_t **xPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[fNHits];
-  Float_t **yPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[fNHits];
-  Float_t **zPos = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[fNHits];
-  Float_t **xPosErr = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[fNHits];
-  Float_t **yPosErr = new Float_t*[nMaxTracks];
-  for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[fNHits];
+  auto **xPos = new Float_t*[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) xPos[i] = new Float_t[mNHits];
+  auto **yPos = new Float_t*[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) yPos[i] = new Float_t[mNHits];
+  auto **zPos = new Float_t*[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) zPos[i] = new Float_t[mNHits];
+  auto **xPosErr = new Float_t*[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) xPosErr[i] = new Float_t[mNHits];
+  auto **yPosErr = new Float_t*[nMaxTracks];
+  for (Int_t i = 0; i < nMaxTracks; i++) yPosErr[i] = new Float_t[mNHits];
 
   Int_t nTrackHits[nMaxTracks];
   for (Int_t i = 0; i < nMaxTracks; i++) nTrackHits[i] = 0;
 
-  AliceO2::MFT::Hit *hit;
+  o2::MFT::Hit *hit;
   Int_t iMCindex;
-  for (Int_t iHit = 0; iHit < fNHits; iHit++) {
-    hit = static_cast<AliceO2::MFT::Hit*>(fHits->At(iHit));
+  for (Int_t iHit = 0; iHit < mNHits; iHit++) {
+    hit = static_cast<o2::MFT::Hit*>(mHits->At(iHit));
     if ( !hit) { continue; }
 
     iMCindex = hit->GetRefIndex();
@@ -163,7 +163,7 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
   // a simple fit through the hits
   
-  TF1* f1 = new TF1("f1", "[0]*x + [1]");
+  auto* f1 = new TF1("f1", "[0]*x + [1]");
   TGraphErrors *trackXZ, *trackYZ;
 
   Double_t slopeX, offX, chi2X, slopeY, offY, chi2Y;
@@ -171,26 +171,26 @@ void FindTracks::Exec(Option_t* /*opt*/)
 
     if (nTrackHits[iTrack] < 4) continue; 
 
-    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], 0, xPosErr[iTrack]);
+    trackXZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], xPos[iTrack], nullptr, xPosErr[iTrack]);
     trackXZ->Fit("f1", "Q");
     slopeX = f1->GetParameter(0);
     offX = f1->GetParameter(1);
     chi2X = f1->GetChisquare();
 
-    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], 0, yPosErr[iTrack]);
+    trackYZ = new TGraphErrors(nTrackHits[iTrack], zPos[iTrack], yPos[iTrack], nullptr, yPosErr[iTrack]);
     trackYZ->Fit("f1", "Q");
     slopeY = f1->GetParameter(0);
     offY = f1->GetParameter(1);
     chi2Y = f1->GetChisquare();
 
-    Track* track = new Track();
+    auto* track = new Track();
     track->SetX(offX);
     track->SetY(offY);
     track->SetZ(0.);
     track->SetTx(slopeX);
     track->SetTy(slopeY);
-    new ((*fTracks)[fNTracks]) Track(*track);
-    fNTracks++;
+    new ((*mTracks)[mNTracks]) Track(*track);
+    mNTracks++;
     delete track;
 
   }  
@@ -204,25 +204,25 @@ void FindTracks::Exec(Option_t* /*opt*/)
   delete trackXZ;
   delete trackYZ;
 
-  fTNofEvents++;
-  fTNofHits   += fNHits;
-  fTNofTracks += fNTracks;
+  mTNofEvents++;
+  mTNofHits   += mNHits;
+  mTNofTracks += mNTracks;
 
 }
 
 //_____________________________________________________________________________
-void FindTracks::ExecMQ(TList* inputList,TList* outputList) 
+void FindTracks::execMQ(TList* inputList,TList* outputList) 
 {
 
-  LOG(INFO) << "FindTracks::ExecMQ >>>>> add MFTHits for event " << fTNofEvents << "";
+  LOG(INFO) << "FindTracks::execMQ >>>>> add MFTHits for event " << mTNofEvents << "";
 
-  fHits = (TClonesArray*)inputList->FindObject("MFTHits");
-  outputList->Add(fTracks);
+  mHits = (TClonesArray*)inputList->FindObject("MFTHits");
+  outputList->Add(mTracks);
 
-  LOG(INFO) << "FindTracks::ExecMQ >>>>> add EventHeader. for event " << fTNofEvents << "";
+  LOG(INFO) << "FindTracks::execMQ >>>>> add EventHeader. for event " << mTNofEvents << "";
 
-  fEventHeader = (EventHeader*)inputList->FindObject("EventHeader.");
-  outputList->Add(fEventHeader);
+  mEventHeader = (EventHeader*)inputList->FindObject("EventHeader.");
+  outputList->Add(mEventHeader);
 
   Exec("");
 
@@ -231,10 +231,10 @@ void FindTracks::ExecMQ(TList* inputList,TList* outputList)
 }
 
 //_____________________________________________________________________________
-void FindTracks::Reset() 
+void FindTracks::reset() 
 {
 
-  fNTracks = fNHits = 0;
-  if ( fTracks ) fTracks->Clear();
+  mNTracks = mNHits = 0;
+  if ( mTracks ) mTracks->Clear();
 
 }

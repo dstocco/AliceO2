@@ -18,7 +18,7 @@
 #include "FairModule.h"                 // for FairModule
 #include "Rtypes.h"                     // for Magnet::Class, Bool_t, etc
 #include <string>                       // for string
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class Magnet : public FairModule
@@ -26,17 +26,17 @@ class Magnet : public FairModule
   public:
     Magnet(const char* name, const char* Title="MY Magnet");
     Magnet();
-    virtual ~Magnet();
-    void ConstructGeometry();
+    ~Magnet() override;
+    void ConstructGeometry() override;
 
     /// Clone this object (used in MT mode only)
-    virtual FairModule* CloneModule() const;
+    FairModule* CloneModule() const override;
 
   private:
     Magnet(const Magnet& orig);
     Magnet& operator=(const Magnet&);
 
-    ClassDef(AliceO2::Passive::Magnet,1)
+    ClassDefOverride(o2::Passive::Magnet,1)
 
 };
 

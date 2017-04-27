@@ -7,9 +7,9 @@
 
 class FairParSet;
 
-using namespace AliceO2::ITS;
+using namespace o2::ITS;
 
-ClassImp(AliceO2::ITS::ContainerFactory)
+ClassImp(o2::ITS::ContainerFactory)
 
   static ContainerFactory gO2itsContFact;
 
@@ -40,5 +40,5 @@ FairParSet* ContainerFactory::createContainer(FairContainer* c)
   //                          c->GetTitle(),c->getContext());
   //}
   // return p;
-  return 0;
+  return nullptr;
 }

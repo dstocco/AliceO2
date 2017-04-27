@@ -17,7 +17,7 @@
 
 #include "FairModule.h"                 // for FairModule
 #include "Rtypes.h"                     // for ClassDef, etc
-namespace AliceO2 {
+namespace o2 {
 namespace Passive {
 
 class Cave : public FairModule
@@ -25,18 +25,18 @@ class Cave : public FairModule
   public:
     Cave(const char* name, const char* Title="Exp Cave");
     Cave();
-    virtual ~Cave();
-    virtual void ConstructGeometry();
+    ~Cave() override;
+    void ConstructGeometry() override;
 
     /// Clone this object (used in MT mode only)
-    virtual FairModule* CloneModule() const;
+    FairModule* CloneModule() const override;
 
   private:
     Cave(const Cave& orig);
     Cave& operator=(const Cave&);
 
     Double_t mWorld[3];
-    ClassDef(AliceO2::Passive::Cave,1) //
+    ClassDefOverride(o2::Passive::Cave,1) //
 };
 }
 }

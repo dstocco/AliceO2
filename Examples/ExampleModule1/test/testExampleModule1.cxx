@@ -8,11 +8,11 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include <assert.h>
+#include <cassert>
 #include "ExampleModule1/Foo.h"
 
 
-namespace AliceO2 {
+namespace o2 {
 namespace Examples {
 namespace ExampleModule1 {
 

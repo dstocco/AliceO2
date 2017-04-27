@@ -10,7 +10,7 @@
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class EventHeader;
@@ -22,32 +22,32 @@ class FindTracks : public FairTask
 
   FindTracks();
   FindTracks(Int_t iVerbose);
-  virtual ~FindTracks();
+  ~FindTracks() override;
 
-  void Reset();
+  InitStatus Init() override;
+  InitStatus ReInit() override;
+  void Exec(Option_t* opt) override;
 
-  virtual InitStatus Init();
-  virtual InitStatus ReInit();
-  virtual void Exec(Option_t* opt);
+  void reset();
 
-  virtual void InitMQ(TList* tempList);
-  virtual void ExecMQ(TList* inputList,TList* outputList);
+  virtual void initMQ(TList* tempList);
+  virtual void execMQ(TList* inputList,TList* outputList);
 
  private:
 
-  TClonesArray*     fHits;         
-  TClonesArray*     fTracks;  
+  TClonesArray*     mHits;         
+  TClonesArray*     mTracks;  
 
-  Int_t fNHits;
-  Int_t fNTracks;     
+  Int_t mNHits;
+  Int_t mNTracks;     
 
-  Int_t fTNofEvents;
-  Int_t fTNofHits;
-  Int_t fTNofTracks;
+  Int_t mTNofEvents;
+  Int_t mTNofHits;
+  Int_t mTNofTracks;
 
-  EventHeader *fEventHeader;
+  EventHeader *mEventHeader;
 
-  ClassDef(FindTracks,1);
+  ClassDefOverride(FindTracks,1);
 
 };
 

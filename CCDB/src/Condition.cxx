@@ -3,15 +3,15 @@
 
 #include "CCDB/Condition.h"
 #include <FairLogger.h>  // for LOG
-#include <stddef.h>      // for NULL
+#include <cstddef>      // for NULL
 
-namespace AliceO2 { namespace CDB { class IdRunRange; }}
+namespace o2 { namespace CDB { class IdRunRange; }}
 
-using namespace AliceO2::CDB;
+using namespace o2::CDB;
 
 ClassImp(Condition)
 
-Condition::Condition() : mObject(NULL), mId(), mConditionMetaData(NULL), mOwner(kFALSE)
+Condition::Condition() : mObject(nullptr), mId(), mConditionMetaData(nullptr), mOwner(kFALSE)
 {
 }
 

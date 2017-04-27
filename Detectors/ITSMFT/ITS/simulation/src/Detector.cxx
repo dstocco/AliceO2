@@ -15,7 +15,7 @@
 //FairRoot includes
 #include "FairDetector.h"           // for FairDetector
 #include "FairLogger.h"             // for LOG, LOG_IF
-#include "FairRootManager.h"        // for FairRootManager
+#include "FairGenericRootManager.h"        // for FairGenericRootManager
 #include "FairRun.h"                // for FairRun
 #include "FairRuntimeDb.h"          // for FairRuntimeDb
 #include "FairVolume.h"             // for FairVolume
@@ -28,7 +28,7 @@
 #include "TVirtualMC.h"             // for gMC, TVirtualMC
 #include "TVirtualMCStack.h"        // for TVirtualMCStack
 
-#include <stdio.h>                  // for NULL, snprintf
+#include <cstdio>                  // for NULL, snprintf
 
 class FairModule;
 
@@ -39,25 +39,21 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using AliceO2::ITSMFT::Point;
-using namespace AliceO2::ITS;
+using o2::ITSMFT::Point;
+using namespace o2::ITS;
 
 Detector::Detector()
-  : AliceO2::Base::Detector("ITS", kTRUE, kAliIts),
-    mLayerID(0),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mEntrancePosition(),
-    mPosition(),
-    mMomentum(),
-    mEntranceTime(-1.),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
-    mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
-    mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(NULL),
+  : o2::Base::Detector("ITS", kTRUE, kAliIts),
+    mLayerID(nullptr),
+    mNumberLayers(),
+    mTrackData(),
+    /*
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -67,44 +63,45 @@ Detector::Detector()
     mRotZ(),
     mModifyGeometry(kFALSE),
     mNumberOfWrapperVolumes(0),
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
-    mGeometry(0),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    
+    mGeometryHandler(new GeometryHandler()),
+    mMisalignmentParameter(nullptr),
+    mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
 }
 
 Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
-  : AliceO2::Base::Detector(name, active, kAliIts),
-    mLayerID(0),
-    mTrackNumberID(-1),
-    mVolumeID(-1),
-    mEntrancePosition(),
-    mPosition(),
-    mMomentum(),
-    mEntranceTime(-1.),
-    mTime(-1.),
-    mLength(-1.),
-    mEnergyLoss(-1),
-    mShunt(),
-    mPointCollection(new TClonesArray("AliceO2::ITSMFT::Point")),
-    mGeometryHandler(new GeometryHandler()),
-    mMisalignmentParameter(NULL),
+  : o2::Base::Detector(name, active, kAliIts),
+    mLayerID(nullptr),
+    mNumberLayers(nlay),
+    mLayerName(new TString[nlay]),
+    mTrackData(),
+    /*
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(-1),
     mShiftX(),
     mShiftY(),
@@ -114,28 +111,31 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
     mRotZ(),
     mModifyGeometry(kFALSE),
     mNumberOfWrapperVolumes(0),
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
-    mGeometry(0),
-    mNumberLayers(nlay),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
+
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    mGeometryHandler(new GeometryHandler()),
+    mMisalignmentParameter(nullptr),
+    
+    mGeometry(nullptr),
     mStaveModelInnerBarrel(kIBModel0),
     mStaveModelOuterBarrel(kOBModel0)
 {
-  mLayerName = new TString[mNumberLayers];
 
   for (Int_t j = 0; j < mNumberLayers; j++) {
     mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V1Layer
@@ -167,43 +167,24 @@ Detector::Detector(const char *name, Bool_t active, const Int_t nlay)
       mDetectorThickness[j] = 0.;
       mChipTypeID[j] = 0;
       mBuildLevel[j] = 0;
-      mGeometry[j] = 0;
+      mGeometry[j] = nullptr;
     }
   }
 }
 
 Detector::Detector(const Detector &rhs)
-  : AliceO2::Base::Detector(rhs),
-    mLayerID(0),
+  : o2::Base::Detector(rhs),
+    mLayerID(nullptr),
     mNumberLayers(rhs.mNumberLayers),
-    mStatus(rhs.mStatus),
-    mModule(rhs.mModule),
-    mParticlePx(rhs.mParticlePx),
-    mParticlePy(rhs.mParticlePy),
-    mParticlePz(rhs.mParticlePz),
-    mEnergyDepositionStep(rhs.mEnergyDepositionStep),
-    mTof(rhs.mTof),
-    mStatus0(rhs.mStatus0),
-    mStartingStepX(rhs.mStartingStepX),
-    mStartingStepY(rhs.mStartingStepY),
-    mStartingStepZ(rhs.mStartingStepZ),
-    mStartingStepT(rhs.mStartingStepT),
-    mTrackNumber(rhs.mTrackNumber),
-    mPositionX(rhs.mPositionX),
-    mPositionY(rhs.mPositionY),
-    mPositionZ(rhs.mPositionZ),
-    mLayerName(0),
-    mTrackNumberID(rhs.mTrackNumberID),
-    mVolumeID(rhs.mVolumeID),
-    mShunt(rhs.mShunt),
-    mPosition(rhs.mPosition),
-    mEntrancePosition(rhs.mEntrancePosition),
-    mMomentum(rhs.mMomentum),
-    mEntranceTime(rhs.mEntranceTime),
-    mTime(rhs.mTime),
-    mLength(rhs.mLength),
-    mEnergyLoss(rhs.mEnergyLoss),
-
+    mLayerName(nullptr),
+    mTrackData(),
+    /*    
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
     mNumberOfDetectors(rhs.mNumberOfDetectors),
     mShiftX(),
     mShiftY(),
@@ -217,30 +198,29 @@ Detector::Detector(const Detector &rhs)
     mNumberOfWrapperVolumes(rhs.mNumberOfWrapperVolumes),
   // the following parameters may be shared with master if needed
   // let's try not to set them and keep dtor simple
-    mWrapperMinRadius(0),
-    mWrapperMaxRadius(0),
-    mWrapperZSpan(0),
-    mWrapperLayerId(0),
-    mTurboLayer(0),
-    mLayerPhi0(0),
-    mLayerRadii(0),
-    mLayerZLength(0),
-    mStavePerLayer(0),
-    mUnitPerStave(0),
-    mStaveThickness(0),
-    mStaveWidth(0),
-    mStaveTilt(0),
-    mDetectorThickness(0),
-    mChipTypeID(0),
-    mBuildLevel(0),
+    mWrapperMinRadius(nullptr),
+    mWrapperMaxRadius(nullptr),
+    mWrapperZSpan(nullptr),
+    mWrapperLayerId(nullptr),
+    mTurboLayer(nullptr),
+    mLayerPhi0(nullptr),
+    mLayerRadii(nullptr),
+    mLayerZLength(nullptr),
+    mStavePerLayer(nullptr),
+    mUnitPerStave(nullptr),
+    mStaveThickness(nullptr),
+    mStaveWidth(nullptr),
+    mStaveTilt(nullptr),
+    mDetectorThickness(nullptr),
+    mChipTypeID(nullptr),
+    mBuildLevel(nullptr),
 
   /// Container for data points
-    mPointCollection(0),
+    mPointCollection(new TClonesArray("o2::ITSMFT::Point")),
+    mGeometryHandler(rhs.mGeometryHandler), // CHECK
+    mMisalignmentParameter(nullptr),
 
-    mGeometryHandler(0),
-    mMisalignmentParameter(0),
-
-    mGeometry(0),
+    mGeometry(rhs.mGeometry),
     mStaveModelInnerBarrel(rhs.mStaveModelInnerBarrel),
     mStaveModelOuterBarrel(rhs.mStaveModelInnerBarrel)
 {
@@ -296,35 +276,9 @@ Detector &Detector::operator=(const Detector &rhs)
   // base class assignment
   Base::Detector::operator=(rhs);
 
-  mLayerID = 0;
+  mLayerID = nullptr;
   mNumberLayers = rhs.mNumberLayers;
-  mStatus = rhs.mStatus;
-  mModule = rhs.mModule;
-  mParticlePx = rhs.mParticlePx;
-  mParticlePy = rhs.mParticlePy;
-  mParticlePz = rhs.mParticlePz;
-  mEnergyDepositionStep = rhs.mEnergyDepositionStep;
-  mTof = rhs.mTof;
-  mStatus0 = rhs.mStatus0;
-  mStartingStepX = rhs.mStartingStepX;
-  mStartingStepY = rhs.mStartingStepY;
-  mStartingStepZ = rhs.mStartingStepZ;
-  mStartingStepT = rhs.mStartingStepT;
-  mTrackNumber = rhs.mTrackNumber;
-  mPositionX = rhs.mPositionX;
-  mPositionY = rhs.mPositionY;
-  mPositionZ = rhs.mPositionZ;
-  mLayerName = 0;
-  mTrackNumberID = rhs.mTrackNumberID;
-  mVolumeID = rhs.mVolumeID;
-  mShunt = rhs.mShunt;
-  mPosition = rhs.mPosition;
-  mEntrancePosition = rhs.mEntrancePosition;
-  mMomentum = rhs.mMomentum;
-  mEntranceTime = rhs.mEntranceTime;
-  mTime = rhs.mTime;
-  mLength = rhs.mLength;
-  mEnergyLoss = rhs.mEnergyLoss;
+  mLayerName = nullptr;
 
   mNumberOfDetectors = rhs.mNumberOfDetectors;
 
@@ -333,30 +287,30 @@ Detector &Detector::operator=(const Detector &rhs)
   mNumberOfWrapperVolumes = rhs.mNumberOfWrapperVolumes;
   // the following parameters may be shared with master if needed
   // let's try not to set them and keep dtor simple
-  mWrapperMinRadius = 0;
-  mWrapperMaxRadius = 0;
-  mWrapperZSpan = 0;
-  mWrapperLayerId = 0;
-  mTurboLayer = 0;
-  mLayerPhi0 = 0;
-  mLayerRadii = 0;
-  mLayerZLength = 0;
-  mStavePerLayer = 0;
-  mUnitPerStave = 0;
-  mStaveThickness = 0;
-  mStaveWidth = 0;
-  mStaveTilt = 0;
-  mDetectorThickness = 0;
-  mChipTypeID = 0;
-  mBuildLevel = 0;
+  mWrapperMinRadius = nullptr;
+  mWrapperMaxRadius = nullptr;
+  mWrapperZSpan = nullptr;
+  mWrapperLayerId = nullptr;
+  mTurboLayer = nullptr;
+  mLayerPhi0 = nullptr;
+  mLayerRadii = nullptr;
+  mLayerZLength = nullptr;
+  mStavePerLayer = nullptr;
+  mUnitPerStave = nullptr;
+  mStaveThickness = nullptr;
+  mStaveWidth = nullptr;
+  mStaveTilt = nullptr;
+  mDetectorThickness = nullptr;
+  mChipTypeID = nullptr;
+  mBuildLevel = nullptr;
 
   /// Container for data points
-  mPointCollection = 0;
+  mPointCollection = nullptr;
 
-  mGeometryHandler = 0;
-  mMisalignmentParameter = 0;
+  mGeometryHandler = nullptr;
+  mMisalignmentParameter = nullptr;
 
-  mGeometry = 0;
+  mGeometry = nullptr;
   mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
   mStaveModelOuterBarrel = rhs.mStaveModelInnerBarrel;
 
@@ -417,74 +371,70 @@ Bool_t Detector::ProcessHits(FairVolume *vol)
     return kFALSE;
   }
 
-  // FIXME: Is copy actually needed?
-  Int_t copy = vol->getCopyNo();
-  Int_t id = vol->getMCid();
-  Int_t lay = 0;
+  Int_t lay=0, volID = vol->getMCid();
 
   // FIXME: Determine the layer number. Is this information available directly from the FairVolume?
-  while ((lay < mNumberLayers) && id != mLayerID[lay]) {
+  bool notSens = false;
+  while ((lay < mNumberLayers) && (notSens=(volID != mLayerID[lay]))) {
     ++lay;
   }
-
+  if (notSens) return kFALSE; //RS: can this happen? This method must be called for sensors only?
+  
   // FIXME: Is it needed to keep a track reference when the outer ITS volume is encountered?
   // if(TVirtualMC::GetMC()->IsTrackExiting()) {
   //  AddTrackReference(gAlice->GetMCApp()->GetCurrentTrackNumber(), AliTrackReference::kITS);
   // } // if Outer ITS mother Volume
+  bool startHit=false, stopHit=false;
+  unsigned char status = 0;
+  if (TVirtualMC::GetMC()->IsTrackEntering()) { status |= Point::kTrackEntering; }
+  if (TVirtualMC::GetMC()->IsTrackInside())   { status |= Point::kTrackInside; }
+  if (TVirtualMC::GetMC()->IsTrackExiting())  { status |= Point::kTrackExiting; }
+  if (TVirtualMC::GetMC()->IsTrackOut())      { status |= Point::kTrackOut; }
+  if (TVirtualMC::GetMC()->IsTrackStop())     { status |= Point::kTrackStopped; }
+  if (TVirtualMC::GetMC()->IsTrackAlive())    { status |= Point::kTrackAlive; }
 
-  // Retrieve the indices with the volume path
-  int stave(0), halfstave(0), chipinmodule(0), module;
-  TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
-  TVirtualMC::GetMC()->CurrentVolOffID(2, module);
-  TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
-  TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
-  int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
-
-  // Record information on the points
-  mEnergyLoss = TVirtualMC::GetMC()->Edep();
-  mTime = TVirtualMC::GetMC()->TrackTime();
-  mTrackNumberID = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
-  mVolumeID = vol->getMCid();
-
-  // FIXME: Set a temporary value to mShunt for now, determine its use at a later stage
-  Int_t trackStatus = 0;
-  if (TVirtualMC::GetMC()->IsTrackEntering()) { trackStatus |= 1 << Point::kTrackEntering; }
-  if (TVirtualMC::GetMC()->IsTrackInside()) { trackStatus |= 1 << Point::kTrackInside; }
-  if (TVirtualMC::GetMC()->IsTrackExiting()) { trackStatus |= 1 << Point::kTrackExiting; }
-  if (TVirtualMC::GetMC()->IsTrackOut()) { trackStatus |= 1 << Point::kTrackOut; }
-  if (TVirtualMC::GetMC()->IsTrackStop()) { trackStatus |= 1 << Point::kTrackStopped; }
-  if (TVirtualMC::GetMC()->IsTrackAlive()) { trackStatus |= 1 << Point::kTrackAlive; }
-  mStatus = trackStatus;
-
-  TVirtualMC::GetMC()->TrackPosition(mPosition);
-  TVirtualMC::GetMC()->TrackMomentum(mMomentum);
-
-  // mLength = TVirtualMC::GetMC()->TrackLength();
-
-  if (TVirtualMC::GetMC()->IsTrackEntering()) {
-    mEntrancePosition = mPosition;
-    mEntranceTime = mTime;
-    mStatus0 = mStatus;
-    return kFALSE; // don't save entering hit.
+  // track is entering or created in the volume
+  if ( (status & Point::kTrackEntering) || (status & Point::kTrackInside && !mTrackData.mHitStarted) ) {
+    startHit = true;
+  }
+  else if ( (status & (Point::kTrackExiting|Point::kTrackOut|Point::kTrackStopped)) ) {
+    stopHit = true;
   }
 
-  // Create Point on every step of the active volume
-  Point *p=addHit(mTrackNumberID, chipindex, //mVolumeID,
-         TVector3(mEntrancePosition.X(), mEntrancePosition.Y(), mEntrancePosition.Z()),
-         TVector3(mPosition.X(), mPosition.Y(), mPosition.Z()),
-         TVector3(mMomentum.Px(), mMomentum.Py(), mMomentum.Pz()), mEntranceTime, mTime, mLength,
-         mEnergyLoss, mShunt, mStatus, mStatus0);
-  p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+  // increment energy loss at all steps except entrance
+  if (!startHit) mTrackData.mEnergyLoss += TVirtualMC::GetMC()->Edep();
+  if (!(startHit|stopHit)) return kFALSE; // do noting
+
+  if (startHit) {
+    mTrackData.mEnergyLoss = 0.;
+    TVirtualMC::GetMC()->TrackMomentum(mTrackData.mMomentumStart);
+    TVirtualMC::GetMC()->TrackPosition(mTrackData.mPositionStart);
+    mTrackData.mTrkStatusStart = status;
+    mTrackData.mHitStarted = true;
+  }
+  if (stopHit) {
+    TLorentzVector positionStop;
+    TVirtualMC::GetMC()->TrackPosition(positionStop);
+    // Retrieve the indices with the volume path
+    int stave(0), halfstave(0), chipinmodule(0), module;
+    TVirtualMC::GetMC()->CurrentVolOffID(1, chipinmodule);
+    TVirtualMC::GetMC()->CurrentVolOffID(2, module);
+    TVirtualMC::GetMC()->CurrentVolOffID(3, halfstave);
+    TVirtualMC::GetMC()->CurrentVolOffID(4, stave);
+    int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
+    
+    Point *p = addHit(TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber(), chipindex,
+		      mTrackData.mPositionStart.Vect(),positionStop.Vect(),mTrackData.mMomentumStart.Vect(),
+		      mTrackData.mMomentumStart.E(),positionStop.T(),mTrackData.mEnergyLoss,
+		      mTrackData.mTrkStatusStart,status);
+    //p->SetTotalEnergy(TVirtualMC::GetMC()->Etot());
+
+    // RS: not sure this is needed
+    // Increment number of Detector det points in TParticle
+    o2::Data::Stack *stack = (o2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
+    stack->AddPoint(kAliIts);
+  }
   
-  // Increment number of Detector det points in TParticle
-  AliceO2::Data::Stack *stack = (AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack();
-  stack->AddPoint(kAliIts);
-
-  // Save old position for the next hit.
-  mEntrancePosition = mPosition;
-  mEntranceTime = mTime;
-  mStatus0 = mStatus;
-
   return kTRUE;
 }
 
@@ -535,65 +485,65 @@ void Detector::createMaterials()
   Float_t wKapton[4] = {0.026362, 0.69113, 0.07327, 0.209235};
   Float_t dKapton = 1.42;
 
-  AliceO2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
-  AliceO2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir,
+  o2::Base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
+  o2::Base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir,
                                   epsilAir, stminAir);
 
-  AliceO2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
-  AliceO2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Mixture(2, "WATER$", aWater, zWater, dWater, 2, wWater);
+  o2::Base::Detector::Medium(2, "WATER$", 2, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
-  AliceO2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01,
+  o2::Base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01,
                                     0.99900E+03);
-  AliceO2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
 
-  AliceO2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
-  AliceO2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Material(4, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7); // From AliPIPEv3
+  o2::Base::Detector::Medium(4, "BERILLIUM$", 4, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 
-  AliceO2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01,
+  o2::Base::Detector::Material(5, "COPPER$", 0.63546E+02, 0.29000E+02, 0.89600E+01,
                                     0.14300E+01, 0.99900E+03);
-  AliceO2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Medium(5, "COPPER$", 5, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
   // needed for STAVE , Carbon, kapton, Epoxy, flexcable
 
   // AliceO2::Base::Detector::Material(6,"CARBON$",12.0107,6,2.210,999,999);
-  AliceO2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
-  AliceO2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(6, "CARBON$", 12.0107, 6, 2.210 / 1.3, 999, 999);
+  o2::Base::Detector::Medium(6, "CARBON$", 6, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
 
-  AliceO2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
-  AliceO2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax,
+  o2::Base::Detector::Mixture(7, "KAPTON(POLYCH2)$", aKapton, zKapton, dKapton, 4, wKapton);
+  o2::Base::Detector::Medium(7, "KAPTON(POLYCH2)$", 7, 0, ifield, fieldm, tmaxfd, stemax,
                                   deemax, epsil, stmin);
 
   // values below modified as compared to source AliITSv11 !
 
   // All types of carbon
   // Unidirectional prepreg
-  AliceO2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
-  AliceO2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(8, "K13D2U2k$", 12.0107, 6, 1.643, 999, 999);
+  o2::Base::Detector::Medium(8, "K13D2U2k$", 8, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Impregnated thread
-  AliceO2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
-  AliceO2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(9, "M60J3K$", 12.0107, 6, 2.21, 999, 999);
+  o2::Base::Detector::Medium(9, "M60J3K$", 9, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
   // Impregnated thread
-  AliceO2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
-  AliceO2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(10, "M55J6K$", 12.0107, 6, 1.63, 999, 999);
+  o2::Base::Detector::Medium(10, "M55J6K$", 10, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Fabric(0/90)
-  AliceO2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
-  AliceO2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
+  o2::Base::Detector::Material(11, "T300$", 12.0107, 6, 1.725, 999, 999);
+  o2::Base::Detector::Medium(11, "T300$", 11, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi,
                                   epsilSi, stminSi);
   // AMEC Thermasol
-  AliceO2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
-  AliceO2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(12, "FGS003$", 12.0107, 6, 1.6, 999, 999);
+  o2::Base::Detector::Medium(12, "FGS003$", 12, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
   // Carbon fleece
-  AliceO2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
-  AliceO2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
+  o2::Base::Detector::Material(13, "CarbonFleece$", 12.0107, 6, 0.4, 999, 999);
+  o2::Base::Detector::Medium(13, "CarbonFleece$", 13, 0, ifield, fieldm, tmaxfdSi, stemaxSi,
                                   deemaxSi, epsilSi, stminSi);
 
   // Flex cable
@@ -604,20 +554,20 @@ void Detector::createMaterials()
   // Float_t dFCm = 2.55;   // conform with STAR
   Float_t dFCm = 2.595; // conform with Corrado
 
-  AliceO2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
-  AliceO2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Mixture(14, "FLEXCABLE$", aFCm, zFCm, dFCm, 5, wFCm);
+  o2::Base::Detector::Medium(14, "FLEXCABLE$", 14, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 
   // AliceO2::Base::Detector::Material(7,"GLUE$",0.12011E+02,0.60000E+01,0.1930E+01/2.015,999,999);
   // // original
-  AliceO2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999,
+  o2::Base::Detector::Material(15, "GLUE$", 12.011, 6, 1.93 / 2.015, 999,
                                     999); // conform with ATLAS, Corrado, Stefan
-  AliceO2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
+  o2::Base::Detector::Medium(15, "GLUE$", 15, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil,
                                   stmin);
 
-  AliceO2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01,
+  o2::Base::Detector::Material(16, "ALUMINUM$", 0.26982E+02, 0.13000E+02, 0.26989E+01,
                                     0.89000E+01, 0.99900E+03);
-  AliceO2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax,
+  o2::Base::Detector::Medium(16, "ALUMINUM$", 16, 0, ifield, fieldm, tmaxfd, stemax, deemax,
                                   epsil, stmin);
 }
 
@@ -632,8 +582,8 @@ void Detector::Register()
   // parameter to kFALSE means that this collection will not be written to the file,
   // it will exist only during the simulation
 
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
+  if (FairGenericRootManager::Instance()) {
+    FairGenericRootManager::Instance()->Register("ITSPoint", "ITS", mPointCollection, kTRUE);
   }
 }
 
@@ -642,7 +592,7 @@ TClonesArray *Detector::GetCollection(Int_t iColl) const
   if (iColl == 0) {
     return mPointCollection;
   } else {
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -828,7 +778,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   }
 
   // Now create the actual shape and volume
-  TGeoTube *tube =
+  auto *tube =
     new TGeoTube(mWrapperMinRadius[id], mWrapperMaxRadius[id], mWrapperZSpan[id] / 2.);
 
   TGeoMedium *medAir = gGeoManager->GetMedium("ITS_AIR$");
@@ -836,7 +786,7 @@ TGeoVolume *Detector::createWrapperVolume(Int_t id)
   char volnam[30];
   snprintf(volnam, 29, "%s%d", GeometryTGeo::getITSWrapVolPattern(), id);
 
-  TGeoVolume *wrapper = new TGeoVolume(volnam, tube, medAir);
+  auto *wrapper = new TGeoVolume(volnam, tube, medAir);
 
   return wrapper;
 }
@@ -867,7 +817,7 @@ void Detector::constructDetectorGeometry()
   new TGeoVolumeAssembly(GeometryTGeo::getITSVolPattern());
   TGeoVolume *vITSV = geoManager->GetVolume(GeometryTGeo::getITSVolPattern());
   vITSV->SetUniqueID(GeometryTGeo::getUIDShift()); // store modID -> midUUID bitshift
-  vALIC->AddNode(vITSV, 2, 0); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
+  vALIC->AddNode(vITSV, 2, nullptr); // Copy number is 2 to cheat AliGeoManager::CheckSymNamesLUT
 
   const Int_t kLength = 100;
   Char_t vstrng[kLength] = "xxxRS"; //?
@@ -926,13 +876,13 @@ void Detector::constructDetectorGeometry()
   }
 
   // Create the wrapper volumes
-  TGeoVolume **wrapVols = 0;
+  TGeoVolume **wrapVols = nullptr;
 
   if (mNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume *[mNumberOfWrapperVolumes];
     for (int id = 0; id < mNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
-      vITSV->AddNode(wrapVols[id], 1, 0);
+      vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
   }
 
@@ -1021,13 +971,13 @@ void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume *dest,
   if (innerBarrel) {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
     //    TGeoTube*ibSuppSh = new TGeoTubeSeg(rminIB,rminIB+cInt,zLenOB,phi1,phi2);
-    TGeoTube *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
-    TGeoVolume *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
+    auto *ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
+    auto *ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
     dest->AddNode(ibSupp, 1);
   } else {
     zLenOB = ((TGeoTube *) (dest->GetShape()))->GetDz();
-    TGeoTube *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
-    TGeoVolume *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
+    auto *obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
+    auto *obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
     dest->AddNode(obSupp, 1);
   }
 
@@ -1049,15 +999,12 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-Point *Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos,
-                        TVector3 mom, Double_t startTime, Double_t time,
-                        Double_t length, Double_t eLoss, Int_t shunt,
-                        Int_t status, Int_t statusStart)
+Point *Detector::addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom, double startE,
+			double endTime, double eLoss, unsigned char startStatus, unsigned char endStatus)
 {
   TClonesArray &clref = *mPointCollection;
   Int_t size = clref.GetEntriesFast();
-  return new(clref[size])
-    Point(trackID, detID, startPos, pos, mom, startTime, time, length, eLoss, shunt, status, statusStart);
+  return new(clref[size]) Point(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
 }
 
 TParticle *Detector::GetParticle() const
@@ -1071,8 +1018,8 @@ TParticle *Detector::GetParticle() const
   //   none.
   // Return:
   //   The TParticle of the track that created this hit.
-
-  return ((AliceO2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(GetTrack());
+  int trc = TVirtualMC::GetMC()->GetStack()->GetCurrentTrackNumber();
+  return ((o2::Data::Stack *) TVirtualMC::GetMC()->GetStack())->GetParticle(trc);
 }
 
 void Detector::Print(std::ostream *os) const
@@ -1098,18 +1045,16 @@ void Detector::Print(std::ostream *os) const
   Int_t fmt;
 #endif
 #endif
-
-  fmt = os->setf(std::ios::scientific); // set scientific floating point output
-  *os << mTrackNumber << " " << mPositionX << " " << mPositionY << " " << mPositionZ << " ";
-  fmt = os->setf(std::ios::hex); // set hex for mStatus only.
-  *os << mStatus << " ";
-  fmt = os->setf(std::ios::dec); // every thing else decimel.
-  *os << mModule << " ";
-  *os << mParticlePx << " " << mParticlePy << " " << mParticlePz << " ";
-  *os << mEnergyDepositionStep << " " << mTof;
-  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
+  // RS: why do we need to pring this garbage?
+  
+  //fmt = os->setf(std::ios::scientific); // set scientific floating point output
+  //fmt = os->setf(std::ios::hex); // set hex for mStatus only.
+  //fmt = os->setf(std::ios::dec); // every thing else decimel.
+  //  *os << mModule << " ";
+  //  *os << mEnergyDepositionStep << " " << mTof;
+  //  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
   //    *os << " " << endl;
-  os->flags(fmt); // reset back to old formating.
+  //os->flags(fmt); // reset back to old formating.
   return;
 }
 
@@ -1122,11 +1067,7 @@ void Detector::Read(std::istream *is)
   //   none.
   // Return:
   //   none.
-
-  *is >> mTrackNumber >> mPositionX >> mPositionY >> mPositionZ;
-  *is >> mStatus >> mModule >> mParticlePx >> mParticlePy >> mParticlePz >> mEnergyDepositionStep >>
-  mTof;
-  *is >> mStartingStepX >> mStartingStepY >> mStartingStepZ;
+  // RS no need to read garbage
   return;
 }
 
@@ -1165,4 +1106,4 @@ std::istream &operator>>(std::istream &is, Detector &r)
   return is;
 }
 
-ClassImp(AliceO2::ITS::Detector)
+ClassImp(o2::ITS::Detector)

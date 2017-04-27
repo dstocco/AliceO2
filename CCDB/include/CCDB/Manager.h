@@ -4,26 +4,26 @@
 #include <TList.h>    // for TList
 #include <TMap.h>     // for TMap
 #include <TObject.h>  // for TObject
-#include <stddef.h>   // for NULL
+#include <cstddef>   // for NULL
 #include "Rtypes.h"   // for Int_t, Bool_t, kFALSE, kTRUE, ClassDef, etc
 #include "TString.h"  // for TString
 
 class TFile;
-namespace AliceO2 { namespace CDB { class Condition; }}  // lines 20-20
-namespace AliceO2 { namespace CDB { class ConditionId; }}  // lines 21-21
-namespace AliceO2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
-namespace AliceO2 { namespace CDB { class IdPath; }}  // lines 22-22
-namespace AliceO2 { namespace CDB { class IdRunRange; }}  // lines 23-23
-namespace AliceO2 { namespace CDB { class Storage; }}  // lines 25-25
-namespace AliceO2 { namespace CDB { class StorageFactory; }}  // lines 26-26
-namespace AliceO2 { namespace CDB { class StorageParameters; }}  // lines 27-27
+namespace o2 { namespace CDB { class Condition; }}  // lines 20-20
+namespace o2 { namespace CDB { class ConditionId; }}  // lines 21-21
+namespace o2 { namespace CDB { class ConditionMetaData; }}  // lines 24-24
+namespace o2 { namespace CDB { class IdPath; }}  // lines 22-22
+namespace o2 { namespace CDB { class IdRunRange; }}  // lines 23-23
+namespace o2 { namespace CDB { class Storage; }}  // lines 25-25
+namespace o2 { namespace CDB { class StorageFactory; }}  // lines 26-26
+namespace o2 { namespace CDB { class StorageParameters; }}  // lines 27-27
 
 
 //  @file   Manager.h
 //  @author Raffaele Grosso
 //  @since  2014-12-02 
-//  @brief  Adapted to AliceO2 from the original AliCDBManager.h in AliRoot
-namespace AliceO2 {
+//  @brief  Adapted to o2 from the original AliCDBManager.h in AliRoot
+namespace o2 {
 namespace CDB {
 
 /// @class Manager
@@ -79,7 +79,7 @@ class Manager : public TObject
 
     Bool_t isDefaultStorageSet() const
     {
-      return mDefaultStorage != 0;
+      return mDefaultStorage != nullptr;
     }
 
     Storage *getDefaultStorage() const
@@ -101,12 +101,12 @@ class Manager : public TObject
 
     void unsetdrainMode()
     {
-      mdrainStorage = 0x0;
+      mdrainStorage = nullptr;
     }
 
     Bool_t isdrainSet() const
     {
-      return mdrainStorage != 0;
+      return mdrainStorage != nullptr;
     }
 
     Bool_t drain(Condition *entry);
@@ -191,7 +191,7 @@ class Manager : public TObject
 
     static void destroy();
 
-    ~Manager();
+    ~Manager() override;
 
     void clearCache();
 
@@ -202,7 +202,7 @@ class Manager : public TObject
       return &mConditionCache;
     }
 
-    static Manager *Instance(TMap *entryCache = NULL, Int_t run = -1);
+    static Manager *Instance(TMap *entryCache = nullptr, Int_t run = -1);
 
     void init();
 
@@ -306,7 +306,7 @@ class Manager : public TObject
   private:
     ULong64_t mKey; //! Key for locking/unlocking
 
-  ClassDef(Manager, 0)
+  ClassDefOverride(Manager, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -322,9 +322,8 @@ class StorageFactory : public TObject
     friend class Manager;
 
   public:
-    virtual ~StorageFactory()
-    {
-    }
+    ~StorageFactory()
+    override = default;
 
     virtual Bool_t validateStorageUri(const char *dbString) = 0;
 
@@ -333,7 +332,7 @@ class StorageFactory : public TObject
   protected:
     virtual Storage *createStorage(const StorageParameters *param) = 0;
 
-  ClassDef(StorageFactory, 0)
+  ClassDefOverride(StorageFactory, 0)
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -348,7 +347,7 @@ class StorageParameters : public TObject
   public:
     StorageParameters();
 
-    virtual ~StorageParameters();
+    ~StorageParameters() override;
 
     const TString &getStorageType() const
     {
@@ -377,7 +376,7 @@ class StorageParameters : public TObject
     TString mType; //! CDB type
     TString mURI;  //! CDB URI
 
-  ClassDef(StorageParameters, 0)
+  ClassDefOverride(StorageParameters, 0)
 };
 
 }

@@ -7,9 +7,9 @@
 
 #include "FairFileSource.h"
 #include "FairRunAna.h"
-#include "FairMQDevice.h"
+#include <FairMQDevice.h>
 
-namespace AliceO2 {
+namespace o2 {
 
 namespace MFT {
 
@@ -19,45 +19,45 @@ class Sampler : public FairMQDevice
  public:
 
   Sampler();
-  virtual ~Sampler();
+  ~Sampler() override;
   
-  void AddInputFileName(std::string s) { fFileNames.push_back(s); }
-  void AddInputBranchName(std::string s) { fBranchNames.push_back(s); }
+  void addInputFileName(std::string s) { mFileNames.push_back(s); }
+  void addInputBranchName(std::string s) { mBranchNames.push_back(s); }
 
-  void SetMaxIndex(int64_t tempInt) {fMaxIndex=tempInt;}
+  void setMaxIndex(int64_t tempInt) {mMaxIndex=tempInt;}
   
-  void SetSource(FairSource* tempSource) {fSource = tempSource;}
+  void setSource(FairSource* tempSource) {mSource = tempSource;}
   
-  void ListenForAcks();
+  void listenForAcks();
   
-  void SetOutputChannelName(std::string tstr) {fOutputChannelName = tstr;}
-  void SetAckChannelName(std::string tstr) {fAckChannelName = tstr;}
+  void setOutputChannelName(std::string tstr) {mOutputChannelName = tstr;}
+  void setAckChannelName(std::string tstr) {mAckChannelName = tstr;}
 
  protected:
 
-  virtual bool ConditionalRun();
-  virtual void PreRun();
-  virtual void PostRun();
-  virtual void InitTask();
+  bool ConditionalRun() override;
+  void PreRun() override;
+  void PostRun() override;
+  void InitTask() override;
  
  private:
 
   Sampler(const Sampler&);
   Sampler& operator=(const Sampler&);
 
-  std::string     fOutputChannelName;
-  std::string     fAckChannelName;
+  std::string     mOutputChannelName;
+  std::string     mAckChannelName;
   
-  FairRunAna*     fRunAna;
-  FairSource*     fSource;
-  TObject*        fInputObjects[100];
-  int             fNObjects;
-  int64_t         fMaxIndex;
-  int             fEventCounter;
-  std::vector<std::string>     fBranchNames;
-  std::vector<std::string>     fFileNames;
+  FairRunAna*     mRunAna;
+  FairSource*     mSource;
+  TObject*        mInputObjects[100];
+  int             mNObjects;
+  int64_t         mMaxIndex;
+  int             mEventCounter;
+  std::vector<std::string>     mBranchNames;
+  std::vector<std::string>     mFileNames;
 
-  boost::thread* fAckListener;
+  boost::thread* mAckListener;
 
 };
 

@@ -21,19 +21,19 @@ class TParticle;
 
 class TString;
 
-namespace AliceO2 { namespace ITSMFT { class Point; }}  // lines 22-22
+namespace o2 { namespace ITSMFT { class Point; }}  // lines 22-22
 
-namespace AliceO2 { namespace ITS { class GeometryHandler; }}
-namespace AliceO2 { namespace ITS { class MisalignmentParameter; }}
-namespace AliceO2 { namespace ITS { class GeometryTGeo; }}
-namespace AliceO2 { namespace ITS { class V1Layer; }}  // lines 23-23
+namespace o2 { namespace ITS { class GeometryHandler; }}
+namespace o2 { namespace ITS { class MisalignmentParameter; }}
+namespace o2 { namespace ITS { class GeometryTGeo; }}
+namespace o2 { namespace ITS { class V1Layer; }}  // lines 23-23
 
-namespace AliceO2 {
+namespace o2 {
 namespace ITS {
 
 class V1Layer;
 
-class Detector : public AliceO2::Base::Detector
+class Detector : public o2::Base::Detector
 {
 
   public:
@@ -59,25 +59,25 @@ class Detector : public AliceO2::Base::Detector
     Detector();
 
     /// Default destructor
-    virtual ~Detector();
+    ~Detector() override;
 
     /// Initialization of the detector is done here
-    virtual void Initialize();
+    void Initialize() override;
 
     /// This method is called for each step during simulation (see FairMCApplication::Stepping())
-    virtual Bool_t ProcessHits(FairVolume *v = 0);
+    Bool_t ProcessHits(FairVolume *v = nullptr) override;
 
     /// Registers the produced collections in FAIRRootManager
-    virtual void Register();
+    void Register() override;
 
     /// Gets the produced collections
-    virtual TClonesArray *GetCollection(Int_t iColl) const;
+    TClonesArray *GetCollection(Int_t iColl) const override;
 
     /// Has to be called after each event to reset the containers
-    virtual void Reset();
+    void Reset() override;
 
     /// Base class to create the detector geometry
-    void ConstructGeometry();
+    void ConstructGeometry() override;
 
     /// Creates the Service Barrel (as a simple cylinder) for IB and OB
     /// \param innerBarrel if true, build IB service barrel, otherwise for OB
@@ -102,8 +102,8 @@ class Detector : public AliceO2::Base::Detector
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    virtual void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
-                             Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+    void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+                             Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
     /// Sets the layer parameters for a "turbo" layer
     /// (i.e. a layer whose staves overlap in phi)
@@ -120,9 +120,9 @@ class Detector : public AliceO2::Base::Detector
     /// \param dthick detector thickness (if omitted, defaults to 0)
     /// \param dettypeID ??
     /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-    virtual void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
+    void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Double_t zlen, Int_t nladd, Int_t nmod,
                                   Double_t width, Double_t tilt, Double_t lthick = 0., Double_t dthick = 0.,
-                                  UInt_t detType = 0, Int_t buildFlag = 0);
+                                  UInt_t detType = 0, Int_t buildFlag = 0) override;
 
     /// Gets the layer parameters
     /// \param nlay layer number
@@ -142,31 +142,32 @@ class Detector : public AliceO2::Base::Detector
                                     UInt_t &dettype) const;
 
     /// This method is an example of how to add your own point of type Point to the clones array
-    AliceO2::ITSMFT::Point *addHit(Int_t trackID, Int_t detID, TVector3 startPos, TVector3 pos, TVector3 mom, Double_t startTime,
-                  Double_t time, Double_t length, Double_t eLoss, Int_t shunt, Int_t status, Int_t statusStart);
+    o2::ITSMFT::Point *addHit(int trackID, int detID, TVector3 startPos, TVector3 endPos, TVector3 startMom,
+				   double startE, double endTime, double eLoss,
+				   unsigned char startStatus, unsigned char endStatus);
 
     /// Book arrays for wrapper volumes
-    virtual void setNumberOfWrapperVolumes(Int_t n);
+    void setNumberOfWrapperVolumes(Int_t n) override;
 
     /// Set per wrapper volume parameters
-    virtual void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan);
+    void defineWrapperVolume(Int_t id, Double_t rmin, Double_t rmax, Double_t zspan) override;
 
     // The following methods can be implemented if you need to make
     // any optional action in your detector during the transport
 
-    virtual void CopyClones(TClonesArray *cl1, TClonesArray *cl2, Int_t offset)
+    void CopyClones(TClonesArray *cl1, TClonesArray *cl2, Int_t offset) override
     {
       ;
     }
 
-    virtual void SetSpecialPhysicsCuts()
+    void SetSpecialPhysicsCuts() override
     {
       ;
     }
 
-    virtual void EndOfEvent();
+    void EndOfEvent() override;
 
-    virtual void FinishPrimary()
+    void FinishPrimary() override
     {
       ;
     }
@@ -176,22 +177,22 @@ class Detector : public AliceO2::Base::Detector
       ;
     }
 
-    virtual void BeginPrimary()
+    void BeginPrimary() override
     {
       ;
     }
 
-    virtual void PostTrack()
+    void PostTrack() override
     {
       ;
     }
 
-    virtual void PreTrack()
+    void PreTrack() override
     {
       ;
     }
 
-    virtual void BeginEvent()
+    void BeginEvent() override
     {
       ;
     }
@@ -200,18 +201,6 @@ class Detector : public AliceO2::Base::Detector
     /// this hit. From the TParticle all kinds of information about this
     /// particle can be found. See the TParticle class.
     virtual TParticle *GetParticle() const;
-
-    // SetTrack and GetTrack methods from AliHit.h
-
-    virtual void SetTrack(Int_t track)
-    {
-      mTrackNumber = track;
-    }
-
-    virtual Int_t GetTrack() const
-    {
-      return mTrackNumber;
-    }
 
     /// Prints out the content of this class in ASCII format
     /// \param ostream *os The output stream
@@ -248,46 +237,25 @@ class Detector : public AliceO2::Base::Detector
     }
 
     /// Clone this object (used in MT mode only)
-    virtual FairModule *CloneModule() const;
+    FairModule *CloneModule() const override;
 
     GeometryTGeo *mGeometryTGeo; //! access to geometry details
 
   protected:
     Int_t *mLayerID;               //! [mNumberLayers] layer identifier
     Int_t mNumberLayers;           //! Number of layers
-    Int_t mStatus;                 //! Track Status
-    Int_t mModule;                 //! Module number
-    Float_t mParticlePx;           //! PX of particle at the point of the hit
-    Float_t mParticlePy;           //! PY of particle at the point of the hit
-    Float_t mParticlePz;           //! PZ of particle at the point of the hit
-    Float_t mEnergyDepositionStep; //! Energy deposited in the current step
-    Float_t mTof;                  //! Time of flight at the point of the hit
-    Int_t mStatus0;                //! Track Status of Starting point
-    Float_t mStartingStepX;        //! Starting point of this step
-    Float_t mStartingStepY;        //! Starting point of this step
-    Float_t mStartingStepZ;        //! Starting point of this step
-    Float_t mStartingStepT;        //! Starting point of this step
-    Int_t mTrackNumber;            //! Track number
-    Float_t mPositionX;            //! X position of the hit
-    Float_t mPositionY;            //! Y position of the hit
-    Float_t mPositionZ;            //! Z position of the hit
-    TString *mLayerName;           //![mNumberLayers] layer identifier
+    TString *mLayerName;           //! [mNumberLayers] layer identifier
 
   private:
-    /// Track information to be stored until the track leaves the
-    /// active volume.
-    Int_t mTrackNumberID;             //! track index
-    Int_t mVolumeID;                  //! volume id
-    Int_t mShunt;                     //! shunt
-    Int_t mTrkStatusFlag;             //! track status flag
-    TLorentzVector mPosition;         //! position
-    TLorentzVector mEntrancePosition; //! position at entrance
-    TLorentzVector mMomentum;         //! momentum
-    Double32_t mEntranceTime;         //! time at entrance
-    Double32_t mTime;                 //! time
-    Double32_t mLength;               //! length
-    Double32_t mEnergyLoss;           //! energy loss
-
+    /// this is transient data about track passing the sensor
+    struct TrackData {                  // this is transient 
+      bool  mHitStarted;                //! hit creation started
+      unsigned char mTrkStatusStart;    //! track status flag
+      TLorentzVector mPositionStart;    //! position at entrance
+      TLorentzVector mMomentumStart;    //! momentum
+      double mEnergyLoss;               //! energy loss
+    } mTrackData; //! 
+    
     Int_t mNumberOfDetectors;
     TArrayD mShiftX;
     TArrayD mShiftY;
@@ -342,7 +310,7 @@ class Detector : public AliceO2::Base::Detector
     Model mStaveModelInnerBarrel; //! The stave model for the Inner Barrel
     Model mStaveModelOuterBarrel; //! The stave model for the Outer Barrel
 
-  ClassDef(Detector, 1)
+  ClassDefOverride(Detector, 1)
 };
 
 // Input and output function for standard C++ input/output.

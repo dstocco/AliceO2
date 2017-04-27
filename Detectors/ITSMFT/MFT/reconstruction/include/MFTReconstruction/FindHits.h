@@ -12,7 +12,7 @@ class FairMCEventHeader;
 
 class TClonesArray;
 
-namespace AliceO2 {
+namespace o2 {
 namespace MFT {
 
 class EventHeader;
@@ -23,34 +23,34 @@ class FindHits : public FairTask
  public:
 
   FindHits();
-  virtual ~FindHits();
+  ~FindHits() override;
 
-  void Reset();
+  InitStatus Init() override;
+  InitStatus ReInit() override;
+  void Exec(Option_t* opt) override;
 
-  virtual InitStatus Init();
-  virtual InitStatus ReInit();
-  virtual void Exec(Option_t* opt);
+  void reset();
 
-  virtual void InitMQ(TList* tempList);
-  virtual void ExecMQ(TList* inputList,TList* outputList);
+  virtual void initMQ(TList* tempList);
+  virtual void execMQ(TList* inputList,TList* outputList);
 
  private:
 
   FindHits(const FindHits&);
   FindHits& operator=(const FindHits&);
 
-  TClonesArray* fPoints; //!
-  TClonesArray* fHits;   //!
+  TClonesArray* mPoints; //!
+  TClonesArray* mHits;   //!
 
-  Int_t fNHits;
+  Int_t mNHits;
 
-  Int_t fTNofEvents;
-  Int_t fTNofHits;
+  Int_t mTNofEvents;
+  Int_t mTNofHits;
 
-  FairMCEventHeader *fMCEventHeader;
-  EventHeader *fEventHeader;
+  FairMCEventHeader *mMCEventHeader;
+  EventHeader *mEventHeader;
 
-  ClassDef(FindHits,1);
+  ClassDefOverride(FindHits,1);
 
 };
 

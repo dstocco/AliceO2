@@ -25,7 +25,7 @@
 #include <cstring> // memset
 #include <functional> // std::function
 
-namespace AliceO2 {
+namespace o2 {
 namespace Format {
 
 // Ideally it does not matter for the implementation of the container class
@@ -40,10 +40,10 @@ class messageList {
   /// apply a selection of elements
   typedef std::function<bool(const HdrT& hdr)> HdrComparison;
 
-  messageList() {}
+  messageList() = default;
   messageList(const messageList& other); // not yet implemented
   messageList& operator=(const messageList& other); // not yet implemented
-  ~messageList() {}
+  ~messageList() = default;
 
   /// add data block to list
   /// both header and payload message parts are required to add an entry

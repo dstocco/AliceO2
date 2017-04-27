@@ -11,7 +11,7 @@ class FairParSet;
 
 class FairContainer;
 
-namespace AliceO2
+namespace o2
 {
 namespace ITS
 {
@@ -28,14 +28,14 @@ class ContainerFactory : public FairContFact
   ContainerFactory();
 
   /// Default destructor
-  ~ContainerFactory() {}
+  ~ContainerFactory() override = default;
   /// Calls the constructor of the corresponding parameter container.
   /// For an actual context, which is not an empty string and not
   /// the default context
   /// of this container, the name is concatinated with the context.
-  FairParSet* createContainer(FairContainer*);
+  FairParSet* createContainer(FairContainer*) override;
 
-  ClassDef(ContainerFactory, 0) // Factory for all AliceO2 ITS parameter containers
+  ClassDefOverride(ContainerFactory, 0) // Factory for all AliceO2 ITS parameter containers
 };
 }
 }
