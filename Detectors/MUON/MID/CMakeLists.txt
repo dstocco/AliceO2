@@ -1,5 +1,6 @@
 add_subdirectory(Base)
 add_subdirectory(Clustering)
+add_subdirectory(Serialization)
 add_subdirectory(Simulation)
 add_subdirectory(TestingSimTools)
 add_subdirectory(Tracking)

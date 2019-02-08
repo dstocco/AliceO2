@@ -2709,3 +2709,15 @@ o2_define_bucket(
     INCLUDE_DIRECTORIES
     ${CMAKE_SOURCE_DIR}/Detectors/MID/Workflow/include
 )
+
+o2_define_bucket(
+    NAME
+    mid_serialization_test_bucket
+
+    DEPENDENCIES
+    Boost::unit_test_framework
+    $<IF:$<BOOL:${benchmark_FOUND}>,benchmark::benchmark,$<0:"">>
+    O2FrameworkCore_bucket
+    INCLUDE_DIRECTORIES
+    ${CMAKE_SOURCE_DIR}/Framework/Core/include
+)
