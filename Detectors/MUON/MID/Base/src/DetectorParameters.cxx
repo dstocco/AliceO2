@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <string>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -27,8 +28,8 @@ namespace detparams
 void assertDEId(int deId)
 {
   /// Checks if the detection element ID is valid
-  if (deId < 0 || deId > NDetectionElements) {
-    throw std::out_of_range("Detection element ID must be between 0 and 72");
+  if (deId < 0 || deId >= NDetectionElements) {
+    throw std::out_of_range(fmt::format("Detection element ID must be between 0 and %i", NDetectionElements - 1));
   }
 }
 
