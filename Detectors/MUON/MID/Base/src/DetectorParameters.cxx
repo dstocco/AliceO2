@@ -28,7 +28,7 @@ void assertDEId(int deId)
 {
   /// Checks if the detection element ID is valid
   if (deId < 0 || deId > NDetectionElements) {
-    throw std::out_of_range("Detection element ID must be between 0 and 72");
+    throw std::out_of_range("Detection element ID must be between 0 and 71");
   }
 }
 
