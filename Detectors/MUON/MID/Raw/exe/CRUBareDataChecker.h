@@ -21,6 +21,7 @@
 #include <map>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
@@ -30,25 +31,44 @@ namespace mid
 class CRUBareDataChecker
 {
  public:
-  bool process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, bool resetStat = true);
+  bool process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
   /// Gets the number of processed events
   unsigned int getNBCsProcessed() const { return mStatistics[0]; }
   /// Gets the number of faulty events
   unsigned int getNBCsFaulty() const { return mStatistics[1]; }
   /// Gets the
   std::string getDebugMessage() const { return mDebugMsg; }
+  void reset();
+
+  /// Sets the crate masks
+  void setCrateMasks(const CrateMasks& masks) { mCrateMasks = masks; }
 
  private:
-  bool checkBC(const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs, std::string& debugMsg);
-  bool checkSameEventWord(const std::vector<LocalBoardRO>& boards, uint8_t refEventWord) const;
-  bool checkConsistency(const LocalBoardRO& board) const;
-  bool checkConsistency(const std::vector<LocalBoardRO>& boards) const;
-  bool checkPatterns(const LocalBoardRO& board, uint8_t expected = 0xFF) const;
-  bool checkPatterns(const std::vector<LocalBoardRO>& boards, uint8_t expected = 0xFF) const;
+  struct Mask {
+    std::array<uint16_t, 4> patternsBP{};  /// Bending plane mask
+    std::array<uint16_t, 4> patternsNBP{}; /// Non-bending plane mask
+  };
 
-  std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries
-  std::string mDebugMsg{};                               /// Debug message
-  std::array<unsigned long int, 2> mStatistics{};        /// Processed events statistics
+  struct GBT {
+    std::vector<LocalBoardRO> regs{}; /// Regional boards
+    std::vector<LocalBoardRO> locs{}; /// Local boards
+  };
+
+  bool checkEvent(uint8_t crateId, const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs, bool isAffectedByEOX, std::string& debugMsg) const;
+  bool checkConsistency(const LocalBoardRO& board, std::string& debugMsg) const;
+  bool checkConsistency(const std::vector<LocalBoardRO>& boards, std::string& debugMsg) const;
+  bool checkMasks(const std::vector<LocalBoardRO>& locs, std::string& debugMsg) const;
+  bool checkLocalBoardSize(const LocalBoardRO& board, std::string& debugMsg) const;
+  bool checkLocalBoardSize(const std::vector<LocalBoardRO>& boards, std::string& debugMsg) const;
+  bool checkRegLocConsistency(uint8_t crateId, const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs, std::string& debugMsg) const;
+  std::string printBoards(const std::vector<LocalBoardRO>& boards) const;
+
+  std::string mDebugMsg{};                        /// Debug message
+  std::array<unsigned long int, 2> mStatistics{}; /// Processed events statistics
+  std::map<uint8_t, Mask> mMasks;                 /// Masks
+  std::map<uint8_t, bool> mBusyFlag;              /// Busy flag
+  std::map<uint8_t, bool> mBusyFlagReg;           /// Busy flag for regional cards
+  CrateMasks mCrateMasks{};                       /// Crate masks
 };
 } // namespace mid
 } // namespace o2
