@@ -16,6 +16,8 @@
 #include <iostream>
 #include <fstream>
 #include "boost/program_options.hpp"
+#include "MIDRaw/CrateFeeIdMapper.h"
+#include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/CRUBareDecoder.h"
 #include "MIDRaw/RawFileReader.h"
 #include "CRUBareDataChecker.h"
@@ -27,7 +29,31 @@ o2::header::RAWDataHeader buildCustomRDH()
   o2::header::RAWDataHeader rdh;
   rdh.word1 |= 0x2000;
   rdh.word1 |= ((0x2000 - 0x100)) << 16;
+  // rdh.word1 |= 0x2000 << 16;
   return rdh;
+}
+
+std::string getOutFilename(const char* inFilename, const char* outDir)
+{
+  std::string basename(inFilename);
+  std::string fdir = "./";
+  auto pos = basename.find_last_of("/");
+  if (pos != std::string::npos) {
+    basename.erase(0, pos + 1);
+    fdir = inFilename;
+    fdir.erase(pos);
+  }
+  basename.insert(0, "check_");
+  basename += ".txt";
+  std::string outputDir(outDir);
+  if (outputDir.empty()) {
+    outputDir = fdir;
+  }
+  if (outputDir.back() != '/') {
+    outputDir += "/";
+  }
+  std::string outFilename = outputDir + basename;
+  return outFilename;
 }
 
 int main(int argc, char* argv[])
@@ -36,14 +62,20 @@ int main(int argc, char* argv[])
   po::options_description generic("Generic options");
   unsigned long int nHBs = 0;
   bool onlyClosedHBs = false;
-  bool ignoreRDH = true;
+  bool ignoreRDH = false;
+  unsigned long int nMaxErrors = 10000;
+  std::string outputDir, feeIdMapperFilename, crateMasksFilename;
 
   // clang-format off
   generic.add_options()
           ("help", "produce help message")
           ("nHBs", po::value<unsigned long int>(&nHBs),"Number of HBs read")
           ("only-closed-HBs", po::value<bool>(&onlyClosedHBs)->implicit_value(true),"Return only closed HBs")
-          ("ignore-RDH", po::value<bool>(&ignoreRDH)->implicit_value(true),"Ignore read RDH. Use custom one instead");
+          ("ignore-RDH", po::value<bool>(&ignoreRDH)->implicit_value(true),"Ignore read RDH. Use custom one instead")
+          ("max-errors", po::value<unsigned long int>(&nMaxErrors),"Maximum number of errors before aborting")
+          ("feeId-config-file", po::value<std::string>(&feeIdMapperFilename),"Filename with crate FEE ID correspondence")
+          ("crate-masks-file", po::value<std::string>(&crateMasksFilename),"Filename with crate masks")
+          ("output-dir", po::value<std::string>(&outputDir),"Output directory");
 
 
   po::options_description hidden("hidden options");
@@ -73,64 +105,80 @@ int main(int argc, char* argv[])
   std::vector<std::string> inputfiles{vm["input"].as<std::vector<std::string>>()};
 
   o2::mid::CRUBareDecoder decoder;
-  decoder.init(true);
+  o2::mid::CrateFeeIdMapper feeIdMapper = o2::mid::createDefaultCrateFeeIdMapper();
+  if (!feeIdMapperFilename.empty()) {
+    feeIdMapper.load(feeIdMapperFilename.c_str());
+  }
+  auto crateMasks = o2::mid::createDefaultCrateMasks();
+  if (!crateMasksFilename.empty()) {
+    crateMasks.load(crateMasksFilename.c_str());
+  }
+  decoder.init(feeIdMapper, crateMasks, true);
 
   o2::mid::CRUBareDataChecker checker;
-
-  unsigned long int iHB = 0;
+  checker.setCrateMasks(crateMasks);
 
   for (auto& filename : inputfiles) {
     o2::mid::RawFileReader<uint8_t> rawFileReader;
-    std::string outFilename = filename;
-    auto pos = outFilename.find_last_of("/");
-    if (pos == std::string::npos) {
-      pos = 0;
-    } else {
-      ++pos;
-    }
-    outFilename.insert(pos, "check_");
-    outFilename += ".txt";
-    std::ofstream outFile(outFilename.c_str());
     if (!rawFileReader.init(filename.c_str())) {
       return 2;
     }
     if (ignoreRDH) {
       rawFileReader.setCustomRDH(buildCustomRDH());
     }
+    std::string outFilename = getOutFilename(filename.c_str(), outputDir.c_str());
+    std::ofstream outFile(outFilename.c_str());
+    if (!outFile.is_open()) {
+      std::cout << "Error: cannot create " << outFilename << std::endl;
+      return 2;
+    }
+    std::cout << "Writing output to: " << outFilename << " ..." << std::endl;
+
     std::vector<o2::mid::LocalBoardRO> data;
     std::vector<o2::mid::ROFRecord> rofRecords;
-    std::stringstream ss;
-    bool isFirst = true;
-    while (rawFileReader.getState() == 0) {
-      rawFileReader.readHB(onlyClosedHBs);
+    std::vector<o2::mid::ROFRecord> hbRecords;
+
+    checker.reset();
+    unsigned long int iHB = 0;
+    unsigned long int lastCheckedHB = 0;
+    std::stringstream summary;
+    while (rawFileReader.readHB(onlyClosedHBs)) {
       decoder.process(rawFileReader.getData());
       rawFileReader.clear();
       size_t offset = data.size();
-      std::copy(decoder.getData().begin(), decoder.getData().end(), std::back_inserter(data));
+      data.insert(data.end(), decoder.getData().begin(), decoder.getData().end());
       for (auto& rof : decoder.getROFRecords()) {
         rofRecords.emplace_back(rof.interactionRecord, rof.eventType, rof.firstEntry + offset, rof.nEntries);
       }
-      ss << "  HB: " << iHB << "  (line: " << 512 * iHB + 1 << ")";
-      if (decoder.isComplete()) {
+      o2::InteractionRecord hb(0, iHB);
+      hbRecords.emplace_back(hb, o2::mid::EventType::Noise, offset, decoder.getData().size());
+      ++iHB;
+      bool isLast = (rawFileReader.getState() != 0 || (nHBs > 0 && iHB >= nHBs));
+      if (decoder.isComplete() || isLast) {
         // The check assumes that we have all data corresponding to one event.
         // However this might not be true since we read one HB at the time.
         // So we must test that the event was fully read before running the check.
-        if (!checker.process(data, rofRecords, isFirst)) {
-          outFile << ss.str() << "\n";
+        if (!checker.process(data, rofRecords, hbRecords)) {
           outFile << checker.getDebugMessage() << "\n";
+          lastCheckedHB = iHB;
         }
-        isFirst = false;
-        std::stringstream clean;
-        ss.swap(clean);
         data.clear();
         rofRecords.clear();
+        hbRecords.clear();
       }
-      ++iHB;
-      if (nHBs > 0 && iHB >= nHBs) {
+
+      if (checker.getNBCsFaulty() >= nMaxErrors) {
+        summary << "Too many errors found: abort check!\n";
+        break;
+      }
+
+      if (isLast) {
         break;
       }
     }
-    outFile << "Fraction of faulty events: " << checker.getNBCsFaulty() << " / " << checker.getNBCsProcessed() << " = " << static_cast<double>(checker.getNBCsFaulty()) / static_cast<double>(checker.getNBCsProcessed());
+    summary << "Fraction of faulty events: " << checker.getNBCsFaulty() << " / " << checker.getNBCsProcessed() << " = " << static_cast<double>(checker.getNBCsFaulty()) / static_cast<double>(checker.getNBCsProcessed()) << "\n";
+    outFile << summary.str();
+    std::cout << summary.str();
 
     outFile.close();
   }
