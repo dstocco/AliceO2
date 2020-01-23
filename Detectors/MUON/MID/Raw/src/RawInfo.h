@@ -39,6 +39,7 @@ static constexpr unsigned int sNBitsLocalClock = 16;
 static constexpr unsigned int sNBitsTriggerWord = 8;
 static constexpr uint16_t sDelayCalibToFET = 10;
 static constexpr uint16_t sDelayBCToLocal = 0;
+static constexpr uint16_t sDelayRegToLocal = 3;
 
 // Buffer info
 static constexpr unsigned int sMaxPageSize = 0x2000;
