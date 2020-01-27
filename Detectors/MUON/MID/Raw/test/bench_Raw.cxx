@@ -19,7 +19,7 @@
 #include <vector>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/Decoder.h"
+#include "MIDRaw/CRUUserLogicDecoder.h"
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/RawUnit.h"
 
@@ -69,7 +69,7 @@ std::vector<o2::mid::raw::RawUnit> generateTestData(size_t nTF, size_t nDataInTF
 static void BM_Decoder(benchmark::State& state)
 {
   o2::mid::Encoder encoder;
-  o2::mid::Decoder decoder;
+  o2::mid::CRUUserLogicDecoder decoder;
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);

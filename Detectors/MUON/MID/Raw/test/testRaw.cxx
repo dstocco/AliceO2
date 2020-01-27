@@ -26,9 +26,9 @@
 #include "MIDBase/DetectorParameters.h"
 #include "MIDBase/Mapping.h"
 #include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/Decoder.h"
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/CRUUserLogicDecoder.h"
+#include "MIDRaw/RawDataAggregator.h"
 #include "MIDRaw/RawUnit.h"
 
 BOOST_AUTO_TEST_SUITE(o2_mid_raw)
@@ -183,9 +183,11 @@ BOOST_AUTO_TEST_CASE(SmallSample)
     o2::InteractionRecord ir(item.first, orbit);
     encoder.process(item.second, ir, o2::mid::EventType::Standard);
   }
-  o2::mid::Decoder decoder;
+  o2::mid::CRUUserLogicDecoder decoder;
   decoder.process(encoder.getBuffer());
-  doTest(inEventType, inData, decoder.getROFRecords(), decoder.getData());
+  o2::mid::RawDataAggregator aggregator;
+  aggregator.process(decoder.getData(), decoder.getROFRecords());
+  doTest(inEventType, inData, aggregator.getROFRecords(), aggregator.getData());
 }
 
 BOOST_AUTO_TEST_CASE(LargeBufferSample)
@@ -212,9 +214,32 @@ BOOST_AUTO_TEST_CASE(LargeBufferSample)
     o2::InteractionRecord ir(item.first, orbit);
     encoder.process(item.second, ir, inEventType);
   }
-  o2::mid::Decoder decoder;
-  decoder.process(encoder.getBuffer());
-  doTest(inEventType, inData, decoder.getROFRecords(), decoder.getData());
+  o2::mid::CRUUserLogicDecoder decoder;
+  o2::mid::RawBuffer<o2::mid::raw::RawUnit> rb;
+  gsl::span<const o2::mid::raw::RawUnit> buf{encoder.getBuffer()};
+  rb.setBuffer(buf);
+  std::vector<o2::mid::ROFRecord> rofRecords;
+  std::vector<o2::mid::LocalBoardRO> decodedData;
+  size_t bufferOffset = 0, bufferSize = 0;
+  while (rb.nextHeader()) {
+    bufferSize += rb.getRDH()->offsetToNext / o2::mid::raw::sElementSizeInBytes;
+    if (rb.isHBClosed()) {
+      decoder.process(buf.subspan(bufferOffset, bufferSize));
+      bufferOffset += bufferSize;
+      bufferSize = 0;
+      size_t firstEntry = decodedData.size();
+      std::copy(decoder.getData().begin(), decoder.getData().end(), std::back_inserter(decodedData));
+      for (auto& rof : decoder.getROFRecords()) {
+        rofRecords.emplace_back(rof);
+        rofRecords.back().firstEntry += firstEntry;
+      }
+    }
+  }
+
+  o2::mid::RawDataAggregator aggregator;
+  aggregator.process(decodedData, rofRecords);
+
+  doTest(inEventType, inData, aggregator.getROFRecords(), aggregator.getData());
 }
 
 BOOST_AUTO_TEST_CASE(RawHeaderOnly)
@@ -225,7 +250,7 @@ BOOST_AUTO_TEST_CASE(RawHeaderOnly)
     o2::InteractionRecord ir(0, iorbit);
     encoder.process(data, ir, o2::mid::EventType::Standard);
   }
-  o2::mid::Decoder decoder;
+  o2::mid::CRUUserLogicDecoder decoder;
   decoder.process(encoder.getBuffer());
   BOOST_TEST(decoder.getROFRecords().size() == 0);
 }
