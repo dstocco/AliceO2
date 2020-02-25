@@ -16,6 +16,7 @@ o2_add_library(
           src/CRUBareDecoder.cxx
           src/CRUUserLogicDecoder.cxx
           src/CRUUserLogicEncoder.cxx
+          src/CRUUserLogicZeroDecoder.cxx
           src/Decoder.cxx
           src/ELinkDecoder.cxx
           src/Encoder.cxx
