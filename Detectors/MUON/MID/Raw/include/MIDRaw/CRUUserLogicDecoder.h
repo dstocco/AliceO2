@@ -30,7 +30,8 @@ namespace mid
 class CRUUserLogicDecoder
 {
  public:
-  void process(gsl::span<const raw::RawUnit> bytes);
+  using type = raw::RawUnit;
+  void process(gsl::span<const type> bytes);
   /// Gets the vector of data
   const std::vector<LocalBoardRO>& getData() { return mData; }
 
@@ -38,7 +39,7 @@ class CRUUserLogicDecoder
   const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
-  RawBuffer<raw::RawUnit> mBuffer{};    /// Raw buffer handler
+  RawBuffer<type> mBuffer{};            /// Raw buffer handler
   std::vector<LocalBoardRO> mData{};    /// Vector of output data
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
   uint8_t mCrateId{0};                  /// Crate ID (from RDH)
