@@ -23,6 +23,7 @@ o2_add_library(
           src/GBTBareDecoder.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
+          src/RawDataAggregator.cxx
           src/RawDataHandler.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DataFormatsMID O2::Headers
