@@ -22,9 +22,6 @@
 #include <Framework/Logger.h>
 #include "Framework/Output.h"
 #include "Framework/Task.h"
-#include "DataFormatsMID/ColumnData.h"
-#include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/Decoder.h"
 #include "MIDRaw/RawFileReader.h"
 
 namespace of = o2::framework;
@@ -48,10 +45,9 @@ class RawReaderDeviceDPL
     mHBperTimeframe = ic.options().get<int>("mid-hb-per-timeframe");
 
     auto stop = [this]() {
-      LOG(INFO) << "Capacities: ROFRecords: " << mDecoder.getROFRecords().capacity() << "  data: " << mDecoder.getData().capacity();
       LOG(INFO) << "Read " << mHBCounter << " HBs in " << mTimer.count() << " s";
       double scaleFactor = 1.e6 / mNROFs;
-      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  decoding: " << mTimerAlgo.count() * scaleFactor << " us";
+      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -71,17 +67,10 @@ class RawReaderDeviceDPL
     }
     mHBCounter += nHBs;
 
-    auto tAlgoStart = std::chrono::high_resolution_clock::now();
-    mDecoder.process(mRawFileReader.getData());
-    mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
-
+    pc.outputs().snapshot(of::Output{"MID", "RAW", 0, of::Lifetime::Timeframe}, mRawFileReader.getData());
     mRawFileReader.clear();
 
-    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, mDecoder.getData());
-    pc.outputs().snapshot(of::Output{"MID", "DATAROF", 0, of::Lifetime::Timeframe}, mDecoder.getROFRecords());
-
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
-    mNROFs += mDecoder.getROFRecords().size();
 
     if (mRawFileReader.getState() == 1) {
       pc.services().get<of::ControlService>().endOfStream();
@@ -89,13 +78,11 @@ class RawReaderDeviceDPL
   }
 
  private:
-  Decoder mDecoder{};
   RawFileReader<raw::RawUnit> mRawFileReader{};
   int mHBperTimeframe{256};
   unsigned long int mHBCounter{0};
-  std::chrono::duration<double> mTimer{0};     ///< full timer
-  std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
-  unsigned int mNROFs{0};                      /// Total number of processed ROFs
+  std::chrono::duration<double> mTimer{0}; ///< full timer
+  unsigned int mNROFs{0};                  /// Total number of processed ROFs
 };
 
 framework::DataProcessorSpec getRawReaderSpec()
@@ -103,7 +90,7 @@ framework::DataProcessorSpec getRawReaderSpec()
   return of::DataProcessorSpec{
     "MIDRawReader",
     of::Inputs{},
-    of::Outputs{of::OutputSpec{"MID", "DATA"}, of::OutputSpec{"MID", "DATAROF"}},
+    of::Outputs{of::OutputSpec{"MID", "RAW"}},
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawReaderDeviceDPL>()},
     of::Options{
       {"mid-raw-infile", of::VariantType::String, "mid_raw.dat", {"Raw input file"}},

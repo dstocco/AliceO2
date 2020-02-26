@@ -18,7 +18,10 @@
 #include "DPLUtils/Utils.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/CRUUserLogicDecoder.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
+#include "MIDWorkflow/RawAggregatorSpec.h"
+#include "MIDWorkflow/RawDecoderSpec.h"
 #include "MIDWorkflow/RawReaderSpec.h"
 #include "MIDWorkflow/TrackerSpec.h"
 
@@ -45,6 +48,8 @@ of::WorkflowSpec getRecoWorkflow()
   of::WorkflowSpec specs;
 
   specs.emplace_back(getRawReaderSpec());
+  specs.emplace_back(getRawDecoderSpec<CRUUserLogicDecoder>());
+  specs.emplace_back(getRawAggregatorSpec());
   specs.emplace_back(getClusterizerSpec());
   specs.emplace_back(getTrackerSpec());
   specs.emplace_back(of::MakeRootTreeWriterSpec("MIDTracksWriter",
