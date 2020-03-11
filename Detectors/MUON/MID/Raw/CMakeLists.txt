@@ -10,7 +10,9 @@
 
 o2_add_library(
   MIDRaw
-  SOURCES src/CrateMapper.cxx
+  SOURCES src/CrateFeeIdMapper.cxx
+          src/CrateMapper.cxx
+          src/CrateMasks.cxx
           src/CRUBareDecoder.cxx
           src/CRUUserLogicDecoder.cxx
           src/CRUUserLogicEncoder.cxx
