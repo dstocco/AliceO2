@@ -51,7 +51,6 @@ template <typename T>
 T RawBuffer<T>::next()
 {
   /// Reads the next word
-  nextPayload();
   return mBytes[mElementIndex++];
 }
 
