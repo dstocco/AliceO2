@@ -19,6 +19,7 @@ o2_add_library(
           src/Decoder.cxx
           src/ELinkDecoder.cxx
           src/Encoder.cxx
+          src/GBTBareDecoder.cxx
           src/LocalBoardRO.cxx
           src/RawBuffer.cxx
           src/RawDataHandler.cxx

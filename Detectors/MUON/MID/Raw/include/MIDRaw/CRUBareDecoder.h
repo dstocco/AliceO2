@@ -19,11 +19,12 @@
 #include <vector>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/CrateMapper.h"
+#include "MIDRaw/CrateFeeIdMapper.h"
+#include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/ELinkDecoder.h"
+#include "MIDRaw/GBTBareDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
-#include "MIDRaw/RawBuffer.h"
+#include "MIDRaw/RawDataHandler.h"
 
 namespace o2
 {
@@ -32,8 +33,9 @@ namespace mid
 class CRUBareDecoder
 {
  public:
-  void init(bool debugMode = false);
-  void process(gsl::span<const uint8_t> bytes);
+  using type = uint8_t;
+  void init(const CrateFeeIdMapper& feeIdMapper, const CrateMasks& masks, bool debugMode = false);
+  void process(gsl::span<const type> bytes);
   /// Gets the vector of data
   const std::vector<LocalBoardRO>& getData() const { return mData; }
 
@@ -43,24 +45,13 @@ class CRUBareDecoder
   bool isComplete() const;
 
  private:
-  RawBuffer<uint8_t> mBuffer{};                                           /// Raw buffer handler
-  std::vector<LocalBoardRO> mData{};                                      /// Vector of output data
-  std::vector<ROFRecord> mROFRecords{};                                   /// List of ROF records
-  CrateMapper mCrateMapper{};                                             /// Crate mapper
-  uint8_t mCrateId{0};                                                    /// Crate ID
-  std::array<uint16_t, crateparams::sNELinksPerGBT> mCalibClocks{};       /// Calibration clock
-  std::array<ELinkDecoder, crateparams::sNELinksPerGBT> mELinkDecoders{}; /// E-link decoders
-  std::function<void(size_t)> mAddReg{[](size_t) {}};                     ///! Add regional board
+  RawDataHandler<type> mHandler{};                              /// Raw data handler
+  std::vector<LocalBoardRO> mData{};                            /// Vector of output data
+  std::vector<ROFRecord> mROFRecords{};                         /// List of ROF records
+  std::array<GBTBareDecoder, crateparams::sNGBTs> mGBTDecoders; /// GBT bare decoders
+  CrateFeeIdMapper mCrateFeeIdMapper{};                         /// Crate FEEID mapper
 
-  std::function<bool(size_t)> mCheckBoard{std::bind(&CRUBareDecoder::checkBoard, this, std::placeholders::_1)}; ///! Check board
-
-  bool nextGBTWord();
-  void processGBT(size_t offset);
   void reset();
-  void addBoard(size_t ilink);
-  bool checkBoard(size_t ilink);
-  void addLoc(size_t ilink);
-  uint16_t getPattern(uint16_t pattern, bool invert) const;
 };
 } // namespace mid
 } // namespace o2
