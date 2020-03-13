@@ -119,6 +119,7 @@ BOOST_AUTO_TEST_CASE(RawBuffer)
 
   // Set buffer again after full reset
   rb.setBuffer(bytes, o2::mid::RawBuffer<uint8_t>::ResetMode::all);
+  rb.nextPayload();
   rb.next();
   BOOST_TEST(static_cast<int>(rb.next()) == 1);
 
@@ -129,10 +130,10 @@ BOOST_AUTO_TEST_CASE(RawBuffer)
     BOOST_TEST(static_cast<int>(rb.next()) == 2);
 
     for (int ibyte = 0; ibyte < memSize; ++ibyte) {
-      rb.next();
+      rb.next(8);
     }
     // And this comes from the new buffer
-    BOOST_TEST(static_cast<int>(rb.next()) == 3);
+    BOOST_TEST(static_cast<int>(rb.next(8)) == 3);
   }
 }
 
