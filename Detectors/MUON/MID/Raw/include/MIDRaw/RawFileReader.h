@@ -19,7 +19,7 @@
 #include <vector>
 #include <array>
 #include "MIDRaw/CrateParameters.h"
-#include "MIDRaw/RawBuffer.h"
+#include "MIDRaw/RawDataHandler.h"
 #include "MIDRaw/RawUnit.h"
 
 namespace o2
@@ -53,7 +53,7 @@ class RawFileReader
 
   std::ifstream mFile{};                                            /// Raw file
   std::vector<T> mBytes;                                            /// Buffer
-  RawBuffer<T> mBuffer;                                             /// Raw buffer handler
+  RawDataHandler<T> mDataHandler;                                   /// Raw data handler
   std::array<unsigned long int, crateparams::sNGBTs> mHBCounters{}; /// HB counters per GBT
   bool mReadContinuous{false};                                      /// Continuous readout mode
   int mState{0};                                                    /// Status flag
