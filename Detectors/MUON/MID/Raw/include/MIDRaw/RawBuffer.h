@@ -42,7 +42,11 @@ class RawBuffer
   unsigned int next(unsigned int nBits);
   T next();
 
+  void skipNext(unsigned int nElements) { mElementIndex += nElements; }
+
   bool nextHeader();
+
+  bool nextPayload();
 
   bool hasNext(unsigned int nBytes);
 
@@ -63,7 +67,6 @@ class RawBuffer
   const unsigned int mElementSizeInBits{mElementSizeInBytes * 8}; /// Element size in bits
   const header::RAWDataHeader* mRDH{nullptr};                     /// Current header (not owner)
 
-  bool nextPayload();
   void reset();
 };
 } // namespace mid
