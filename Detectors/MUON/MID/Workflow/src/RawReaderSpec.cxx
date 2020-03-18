@@ -67,7 +67,7 @@ class RawReaderDeviceDPL
     }
     mHBCounter += nHBs;
 
-    pc.outputs().snapshot(of::Output{"MID", "RAW", 0, of::Lifetime::Timeframe}, mRawFileReader.getData());
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, header::gDataDescriptionRawData, 0, of::Lifetime::Timeframe}, mRawFileReader.getData());
     mRawFileReader.clear();
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
@@ -90,7 +90,7 @@ framework::DataProcessorSpec getRawReaderSpec()
   return of::DataProcessorSpec{
     "MIDRawReader",
     of::Inputs{},
-    of::Outputs{of::OutputSpec{"MID", "RAW"}},
+    of::Outputs{of::OutputSpec{header::gDataOriginMID, header::gDataDescriptionRawData}},
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::RawReaderDeviceDPL>()},
     of::Options{
       {"mid-raw-infile", of::VariantType::String, "mid_raw.dat", {"Raw input file"}},
