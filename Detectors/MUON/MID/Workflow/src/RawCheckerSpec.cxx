@@ -61,6 +61,7 @@ class RawCheckerDeviceDPL
 
   void run(of::ProcessingContext& pc)
   {
+    return; // TODO: REMOVE
     auto tStart = std::chrono::high_resolution_clock::now();
 
     auto msg = pc.inputs().get("mid_decoded");
