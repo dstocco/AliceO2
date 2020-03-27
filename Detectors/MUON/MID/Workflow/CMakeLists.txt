@@ -77,3 +77,16 @@ o2_add_executable(
 
 target_include_directories(
   ${exenameraw} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-decoder-workflow
+  COMPONENT_NAME mid
+  SOURCES src/mid-raw-decoder-workflow.cxx src/RawAggregatorSpec.cxx
+          src/RawDecoderSpec.cxx src/RawDecoderWorkflow.cxx TARGETVARNAME
+          exanamerawdecoder
+  PUBLIC_LINK_LIBRARIES O2::Framework ms_gsl::ms_gsl O2::DataFormatsMID
+                        O2::MIDRaw)
+
+target_include_directories(
+  ${exanamerawdecoder}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
