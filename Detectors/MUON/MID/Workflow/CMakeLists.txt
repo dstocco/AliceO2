@@ -69,3 +69,15 @@ o2_add_executable(
 
 target_include_directories(
   ${exenameraw} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-checker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/raw-checker-workflow.cxx src/RawCheckerSpec.cxx
+          src/RawDecoderSpec.cxx src/RawGBTDecoderSpec.cxx TARGETVARNAME
+          exanamerawchecker
+  PUBLIC_LINK_LIBRARIES O2::Framework ms_gsl::ms_gsl O2::MIDRaw O2::MIDQC)
+
+target_include_directories(
+  ${exanamerawchecker}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
