@@ -16,7 +16,7 @@
 #define O2_MID_CRATEFEEIDMAPPER_H
 
 #include <cstdint>
-#include <map>
+#include <unordered_map>
 
 namespace o2
 {
@@ -36,7 +36,7 @@ class CrateFeeIdMapper
  private:
   inline uint32_t getId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return linkId | (endPointId << 8) | (cruId << 16); }
 
-  std::map<uint32_t, uint16_t> mGBTIdToFeeId; /// Correspondence between GBT Id and FeeId
+  std::unordered_map<uint32_t, uint16_t> mGBTIdToFeeId; /// Correspondence between GBT Id and FeeId
 };
 
 CrateFeeIdMapper createDefaultCrateFeeIdMapper();
