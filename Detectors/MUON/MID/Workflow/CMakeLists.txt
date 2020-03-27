@@ -17,6 +17,7 @@ o2_add_library(MIDWorkflow
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/RawAggregatorSpec.cxx
+                       src/RawCheckerSpec.cxx
                        src/RawDecoderSpec.cxx
                        src/RawGBTDecoderSpec.cxx
                        src/RawWriterSpec.cxx
@@ -33,6 +34,7 @@ o2_add_library(MIDWorkflow
                        O2::DataFormatsMID
                        O2::MIDClustering
                        O2::MIDCTF
+                       O2::MIDQC
                        O2::MIDRaw
                        O2::MIDSimulation
                        O2::MIDTracking
@@ -102,4 +104,15 @@ o2_add_executable(
 
 target_include_directories(
   ${exanamedigitswriter}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-checker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/raw-checker-workflow.cxx
+  TARGETVARNAME exanamerawchecker
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamerawchecker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
