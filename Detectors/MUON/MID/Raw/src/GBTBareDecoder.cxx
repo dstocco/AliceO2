@@ -35,8 +35,8 @@ void GBTBareDecoder::init(uint16_t feeId, uint8_t mask, bool debugMode)
   mFeeId = feeId;
   mMask = mask;
   if (debugMode == true) {
-    mProcessReg = std::bind(&GBTBareDecoder::processRegDebug, this, std::placeholders::_1, std::placeholders::_2);
-    mProcessLoc = std::bind(&GBTBareDecoder::processLocDebug, this, std::placeholders::_1, std::placeholders::_2);
+    mOnDoneLoc = &GBTBareDecoder::onDoneLocDebug;
+    mProcessReg = &GBTBareDecoder::processRegDebug;
   }
 }
 
@@ -83,11 +83,11 @@ void GBTBareDecoder::processHalfReg(size_t idx, int halfReg, const gsl::span<con
 
   // local links
   for (int ib = 0; ib < 4; ++ib) {
-    mProcessLoc(linkOffset + ib, bytes[byteOffset + ib]);
+    processLoc(linkOffset + ib, bytes[byteOffset + ib]);
   }
 
   // Regional link
-  mProcessReg(8 + halfReg, bytes[byteOffset + 4]);
+  std::invoke(mProcessReg, this, 8 + halfReg, bytes[byteOffset + 4]);
 }
 
 bool GBTBareDecoder::checkLoc(size_t ilink)
@@ -158,57 +158,74 @@ bool GBTBareDecoder::feedReg(size_t ilink, uint8_t byte)
   return (mELinkDecoders[ilink].add(byte, (raw::sSTARTBIT)) && mELinkDecoders[ilink].isComplete());
 }
 
-void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
+void GBTBareDecoder::onDoneLoc(size_t ilink)
 {
-  /// Processes the local board information
-  if (feedLoc(ilink, byte)) {
-    if (updateIR(ilink)) {
-      return;
-    }
-    if (checkLoc(ilink)) {
-      addLoc(ilink);
-    }
-    mELinkDecoders[ilink].reset();
+  /// Performs action on decoded local board
+  if (updateIR(ilink)) {
+    return;
+  }
+  if (checkLoc(ilink)) {
+    addLoc(ilink);
   }
 }
 
-void GBTBareDecoder::processLocDebug(size_t ilink, uint8_t byte)
+void GBTBareDecoder::onDoneLocDebug(size_t ilink)
 {
-  /// Processes the local board information in debug mode
+  /// Performs action on decoded local board in debug mode.
   /// This always adds the local board to the output, without performing tests
-  if (feedLoc(ilink, byte)) {
-    updateIR(ilink);
-    addLoc(ilink);
-    mELinkDecoders[ilink].reset();
+  updateIR(ilink);
+  addLoc(ilink);
+}
+
+void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
+{
+  /// Processes the local board information
+  if ((mMask & (1 << ilink)) == 0) {
+    return;
+  }
+  if (mELinkDecoders[ilink].getNBytes() > 0) {
+    mELinkDecoders[ilink].add(byte);
+    if (mELinkDecoders[ilink].isComplete()) {
+      std::invoke(mOnDoneLoc, this, ilink);
+      mELinkDecoders[ilink].reset();
+    }
+  } else if ((byte & (raw::sSTARTBIT | raw::sCARDTYPE)) == (raw::sSTARTBIT | raw::sCARDTYPE)) {
+    mELinkDecoders[ilink].add(byte);
   }
 }
 
 void GBTBareDecoder::processRegDebug(size_t ilink, uint8_t byte)
 {
   /// Processes the regional board information in debug mode
-  if (feedReg(ilink, byte)) {
-    updateIR(ilink);
-    addBoard(ilink);
-    // The board creation is optimized for the local boards, not the regional
-    // (which are transmitted only in debug mode).
-    // So, at this point, for the regional board, the local Id is actually the crate ID.
-    // If we want to distinguish the two regional e-links, we can use the link ID instead
-    mData.back().boardId = crateparams::makeUniqueLocID(crateparams::getLocId(mData.back().boardId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1));
-    if (mData.back().triggerWord == 0) {
-      if (mROFRecords.back().interactionRecord.bc < sDelayRegToLocal) {
-        // In the tests, the HB does not really correspond to a change of orbit
-        // So we need to keep track of the last clock at which the HB was received
-        // and come back to that value
-        // FIXME: Remove this part as well as mLastClock when tests are no more needed
-        mROFRecords.back().interactionRecord -= (constants::lhc::LHCMaxBunches - mLastClock[ilink] - 1);
+  // if (feedReg(ilink, byte)) {
+  if (mELinkDecoders[ilink].getNBytes() > 0) {
+    mELinkDecoders[ilink].add(byte);
+    if (mELinkDecoders[ilink].isComplete()) {
+      updateIR(ilink);
+      addBoard(ilink);
+      // The board creation is optimized for the local boards, not the regional
+      // (which are transmitted only in debug mode).
+      // So, at this point, for the regional board, the local Id is actually the crate ID.
+      // If we want to distinguish the two regional e-links, we can use the link ID instead
+      mData.back().boardId = crateparams::makeUniqueLocID(crateparams::getLocId(mData.back().boardId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1));
+      if (mData.back().triggerWord == 0) {
+        if (mROFRecords.back().interactionRecord.bc < sDelayRegToLocal) {
+          // In the tests, the HB does not really correspond to a change of orbit
+          // So we need to keep track of the last clock at which the HB was received
+          // and come back to that value
+          // FIXME: Remove this part as well as mLastClock when tests are no more needed
+          mROFRecords.back().interactionRecord -= (constants::lhc::LHCMaxBunches - mLastClock[ilink] - 1);
+        }
+        // This is a self-triggered event.
+        // In this case the regional card needs to wait to receive the tracklet decision of each local
+        // which result in a delay that needs to be subtracted if we want to be able to synchronize
+        // local and regional cards for the checks
+        mROFRecords.back().interactionRecord -= sDelayRegToLocal;
       }
-      // This is a self-triggered event.
-      // In this case the regional card needs to wait to receive the tracklet decision of each local
-      // which result in a delay that needs to be subtracted if we want to be able to synchronize
-      // local and regional cards for the checks
-      mROFRecords.back().interactionRecord -= sDelayRegToLocal;
+      mELinkDecoders[ilink].reset();
     }
-    mELinkDecoders[ilink].reset();
+  } else if (byte & raw::sSTARTBIT) {
+    mELinkDecoders[ilink].add(byte);
   }
 }
 

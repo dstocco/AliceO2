@@ -52,8 +52,11 @@ class GBTBareDecoder
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};      /// Interaction records per link
   std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};         /// Last clock per link
 
-  std::function<void(size_t, size_t)> mProcessLoc{std::bind(&GBTBareDecoder::processLoc, this, std::placeholders::_1, std::placeholders::_2)}; ///! Processes the local board
-  std::function<void(size_t, size_t)> mProcessReg{[](size_t, size_t) {}};                                                                      ///! Processes the regional board
+  typedef void (GBTBareDecoder::*ProcessFunction)(size_t, uint8_t);
+  typedef void (GBTBareDecoder::*OnDoneFunction)(size_t);
+
+  OnDoneFunction mOnDoneLoc{&GBTBareDecoder::onDoneLoc};    ///! Processes the local board
+  ProcessFunction mProcessReg{&GBTBareDecoder::processReg}; ///! Processes the regional board
 
   void processHalfReg(size_t idx, int halfReg, const gsl::span<const uint8_t>& bytes);
   void reset();
@@ -62,8 +65,10 @@ class GBTBareDecoder
   bool checkLoc(size_t ilink);
   bool feedLoc(size_t ilink, uint8_t byte);
   bool feedReg(size_t ilink, uint8_t byte);
+  void onDoneLoc(size_t ilink);
+  void onDoneLocDebug(size_t ilink);
   void processLoc(size_t ilink, uint8_t byte);
-  void processLocDebug(size_t ilink, uint8_t byte);
+  void processReg(size_t, uint8_t){}; /// Dummuy function
   void processRegDebug(size_t ilink, uint8_t byte);
   bool updateIR(size_t ilink);
   bool invertPattern(LocalBoardRO& loc);
