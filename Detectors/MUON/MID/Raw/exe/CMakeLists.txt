@@ -14,3 +14,9 @@ o2_add_executable(
   COMPONENT_NAME mid
   SOURCES rawdump.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDRaw)
+
+o2_add_executable(
+  raw-decoder-test
+  COMPONENT_NAME mid
+  SOURCES raw-decoder-test.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
