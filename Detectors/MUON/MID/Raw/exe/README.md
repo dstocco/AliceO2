@@ -20,3 +20,12 @@ For a list of the other available options:
 ```bash
 o2-mid-rawdump --help
 ```
+
+## MID raw decoder test
+This utility allows to read a raw data file in loop mode in order to test the decoder performances
+Basic usage:
+```bash
+o2-mid-raw-decoder-test --feeId-config-file feeId_filename filename [filename_2 filename_3 ...]
+```
+The `feeId_filename` is a file allowing to tell which feeId is readout by the configured GBT.
+The file should be in the form explained [here](../README.md)
