@@ -42,11 +42,13 @@ class GBTBareDecoder
   bool isComplete() const;
 
  private:
-  std::vector<LocalBoardRO> mData{};                                      /// Vector of output data
-  std::vector<ROFRecord> mROFRecords{};                                   /// List of ROF records
-  uint16_t mFeeId{0};                                                     /// FEE ID
-  uint8_t mMask{0xFF};                                                    /// GBT mask
-  InteractionRecord mIRFirstPage{};                                       /// Interaction record of the first page
+  std::vector<LocalBoardRO> mData{};    /// Vector of output data
+  std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
+  uint16_t mFeeId{0};                   /// FEE ID
+  uint8_t mMask{0xFF};                  /// GBT mask
+  uint16_t mIsFeeding{0};               /// Flag to check if the e-link is feeding
+  InteractionRecord mIRFirstPage{};     /// Interaction record of the first page
+
   std::array<uint16_t, crateparams::sNELinksPerGBT> mCalibClocks{};       /// Calibration clock
   std::array<ELinkDecoder, crateparams::sNELinksPerGBT> mELinkDecoders{}; /// E-link decoders
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};      /// Interaction records per link

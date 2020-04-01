@@ -68,10 +68,28 @@ void GBTBareDecoder::process(gsl::span<const uint8_t> bytes, const header::RAWDa
     mIRFirstPage.bc = rdh.triggerBC;
   }
 
+  uint8_t byte = 0;
+  size_t ilink = 0, linkMask = 0, byteOffset = 0;
+
   for (size_t idx = 0; idx < bytes.size(); idx += 16) {
-    processHalfReg(idx, 0, bytes);
-    processHalfReg(idx, 1, bytes);
-  }
+    for (int ireg = 0; ireg < 2; ++ireg) {
+      byteOffset = idx + 5 * ireg;
+      for (int ib = 0; ib < 4; ++ib) {
+        byte = bytes[byteOffset + ib];
+        ilink = ib + 4 * ireg;
+        linkMask = (1 << ilink);
+        if ((mMask & linkMask) && ((mIsFeeding & linkMask) || byte)) {
+          processLoc(ilink, byte);
+        }
+      } // loop on locs
+      byte = bytes[byteOffset + 4];
+      ilink = 8 + ireg;
+      linkMask = (1 << ilink);
+      if ((mIsFeeding & linkMask) || byte) {
+        std::invoke(mProcessReg, this, ilink, byte);
+      }
+    } // loop on half regional
+  }   // loop on buffer index
 }
 
 void GBTBareDecoder::processHalfReg(size_t idx, int halfReg, const gsl::span<const uint8_t>& bytes)
@@ -180,17 +198,19 @@ void GBTBareDecoder::onDoneLocDebug(size_t ilink)
 void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
 {
   /// Processes the local board information
-  if ((mMask & (1 << ilink)) == 0) {
-    return;
-  }
+  // if ((mMask & (1 << ilink)) == 0) {
+  //   return;
+  // }
   if (mELinkDecoders[ilink].getNBytes() > 0) {
     mELinkDecoders[ilink].add(byte);
     if (mELinkDecoders[ilink].isComplete()) {
       std::invoke(mOnDoneLoc, this, ilink);
       mELinkDecoders[ilink].reset();
+      mIsFeeding &= (~(1 << ilink));
     }
   } else if ((byte & (raw::sSTARTBIT | raw::sCARDTYPE)) == (raw::sSTARTBIT | raw::sCARDTYPE)) {
     mELinkDecoders[ilink].add(byte);
+    mIsFeeding |= (1 << ilink);
   }
 }
 
@@ -223,9 +243,11 @@ void GBTBareDecoder::processRegDebug(size_t ilink, uint8_t byte)
         mROFRecords.back().interactionRecord -= sDelayRegToLocal;
       }
       mELinkDecoders[ilink].reset();
+      mIsFeeding &= (~(1 << ilink));
     }
   } else if (byte & raw::sSTARTBIT) {
     mELinkDecoders[ilink].add(byte);
+    mIsFeeding |= (1 << ilink);
   }
 }
 
