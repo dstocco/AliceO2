@@ -16,10 +16,10 @@
 #define O2_MID_GBTBAREDECODER_H
 
 #include <cstdint>
-#include <vector>
 #include <gsl/gsl>
-#include "Headers/RAWDataHeader.h"
+#include <vector>
 #include "DataFormatsMID/ROFRecord.h"
+#include "Headers/RAWDataHeader.h"
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/ELinkDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
@@ -42,6 +42,13 @@ class GBTBareDecoder
   bool isComplete() const;
 
  private:
+  struct DecodedCard {
+    bool isDone{false};
+    EventType eventType{EventType::Standard};
+    LocalBoardRO loc{};
+    InteractionRecord ir{};
+  };
+
   std::vector<LocalBoardRO> mData{};                                      /// Vector of output data
   std::vector<ROFRecord> mROFRecords{};                                   /// List of ROF records
   uint16_t mFeeId{0};                                                     /// FEE ID
@@ -51,6 +58,7 @@ class GBTBareDecoder
   std::array<ELinkDecoder, crateparams::sNELinksPerGBT> mELinkDecoders{}; /// E-link decoders
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};      /// Interaction records per link
   std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};         /// Last clock per link
+  std::array<DecodedCard, crateparams::sNELinksPerGBT> mDecodedCards{};   /// Decoded cards
 
   typedef void (GBTBareDecoder::*ProcessFunction)(size_t, uint8_t);
   typedef void (GBTBareDecoder::*OnDoneFunction)(size_t);
@@ -59,6 +67,8 @@ class GBTBareDecoder
   ProcessFunction mProcessReg{&GBTBareDecoder::processReg}; ///! Processes the regional board
 
   void processHalfReg(size_t idx, int halfReg, const gsl::span<const uint8_t>& bytes);
+  void processLocLink(size_t ilink, const gsl::span<const uint8_t> bytes);
+  void processRegLink(size_t ilink, const gsl::span<const uint8_t> bytes);
   void reset();
   void addBoard(size_t ilink);
   void addLoc(size_t ilink);
