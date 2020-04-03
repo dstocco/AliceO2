@@ -37,6 +37,9 @@ class RawDataHandler
   /// Gets the current RDH
   const header::RAWDataHeader* getRDH() { return mRDH; }
 
+  /// Gets the index of the current RDH
+  size_t getRDHIndex() const { return mRDHIndex; }
+
   /// Gets the payload
   gsl::span<const T> getPayload() const { return mBytes.subspan(mPayloadIndex, (mRDH->memorySize - mRDH->headerSize) / mElementSizeInBytes); }
 
