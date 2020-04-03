@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <vector>
 #include <gsl/gsl>
+#include <future>
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateFeeIdMapper.h"
 #include "MIDRaw/CrateMasks.h"
@@ -37,7 +38,10 @@ class CRUBareDecoder
   void init(const CrateFeeIdMapper& feeIdMapper, const CrateMasks& masks, bool debugMode = false);
   void process(gsl::span<const type> bytes);
   /// Gets the vector of data
-  const std::vector<LocalBoardRO>& getData() const { return mData; }
+  const std::vector<LocalBoardRO>& getData() const
+  {
+    return mData;
+  }
 
   /// Gets the vector of data RO frame records
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
@@ -45,12 +49,16 @@ class CRUBareDecoder
   bool isComplete() const;
 
  private:
-  RawDataHandler<type> mHandler{};                              /// Raw data handler
-  std::vector<LocalBoardRO> mData{};                            /// Vector of output data
-  std::vector<ROFRecord> mROFRecords{};                         /// List of ROF records
-  std::array<GBTBareDecoder, crateparams::sNGBTs> mGBTDecoders; /// GBT bare decoders
-  CrateFeeIdMapper mCrateFeeIdMapper{};                         /// Crate FEEID mapper
+  RawDataHandler<type> mHandler{};                                     /// Raw data handler
+  std::vector<LocalBoardRO> mData{};                                   /// Vector of output data
+  std::vector<ROFRecord> mROFRecords{};                                /// List of ROF records
+  std::array<GBTBareDecoder, crateparams::sNGBTs> mGBTDecoders{};      /// GBT bare decoders
+  CrateFeeIdMapper mCrateFeeIdMapper{};                                /// Crate FEEID mapper
+  std::array<std::future<void>, crateparams::sNGBTs> mGBTProcessors{}; /// GBT processors
+  std::array<bool, crateparams::sNGBTs> mGBTProcessorActive{};         /// Processor is active
 
+  bool addData(uint16_t feeId);
+  void processGBT(uint16_t feeId, gsl::span<const uint8_t> bytes);
   void reset();
 };
 } // namespace mid
