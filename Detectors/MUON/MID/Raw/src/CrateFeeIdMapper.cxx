@@ -25,11 +25,10 @@ namespace o2
 {
 namespace mid
 {
-uint16_t CrateFeeIdMapper::getFeeId(uint8_t linkId, uint8_t endPointId, uint16_t cruId)
+uint16_t CrateFeeIdMapper::getFeeId(uint32_t uniqueId) const
 {
   /// Gets the feeId from the physical ID of the link
-  auto id = getId(linkId, endPointId, cruId);
-  auto feeId = mGBTIdToFeeId.find(id);
+  auto feeId = mGBTIdToFeeId.find(uniqueId);
   if (feeId == mGBTIdToFeeId.end()) {
     return 0xFFFF;
   }
@@ -66,7 +65,7 @@ bool CrateFeeIdMapper::load(const char* filename)
     uint8_t endPointId = std::atoi(token.c_str());
     std::getline(ss, token, ' ');
     uint16_t cruId = std::atoi(token.c_str());
-    mGBTIdToFeeId[getId(linkId, endPointId, cruId)] = feeId;
+    mGBTIdToFeeId[getUniqueId(linkId, endPointId, cruId)] = feeId;
   }
   inFile.close();
   return true;

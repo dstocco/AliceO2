@@ -26,16 +26,20 @@ class CrateFeeIdMapper
 {
  public:
   // Sets the feeId
-  void setFeeId(uint16_t feeId, int8_t linkId, uint8_t endPointId, uint16_t cruId) { mGBTIdToFeeId[getId(linkId, endPointId, cruId)] = feeId; }
+  void setFeeId(uint16_t feeId, int8_t linkId, uint8_t endPointId, uint16_t cruId) { mGBTIdToFeeId[getUniqueId(linkId, endPointId, cruId)] = feeId; }
 
-  uint16_t getFeeId(uint8_t linkId, uint8_t endPointId, uint16_t cruId);
+  uint16_t getFeeId(uint32_t uniqueId) const;
+
+  /// Gets the FEE ID from the physical ID of the link
+  uint16_t getFeeId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return getFeeId(getUniqueId(linkId, endPointId, cruId)); }
+
+  /// Gets a uniqueID from the combination of linkId, endPointId and cruId;
+  inline uint32_t getUniqueId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return linkId | (endPointId << 8) | (cruId << 16); }
 
   bool load(const char* filename);
   void write(const char* filename) const;
 
  private:
-  inline uint32_t getId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return linkId | (endPointId << 8) | (cruId << 16); }
-
   std::unordered_map<uint32_t, uint16_t> mGBTIdToFeeId; /// Correspondence between GBT Id and FeeId
 };
 
