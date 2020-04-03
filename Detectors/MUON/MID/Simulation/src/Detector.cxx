@@ -84,6 +84,10 @@ void Detector::ConstructGeometry()
   if (!top) {
     throw std::runtime_error("Cannot create MID geometry without a top volume");
   }
+  auto motherVolume = gGeoManager->GetVolume("YOUT2");
+  if (motherVolume) {
+    top = motherVolume;
+  }
   createGeometry(*top);
 }
 
