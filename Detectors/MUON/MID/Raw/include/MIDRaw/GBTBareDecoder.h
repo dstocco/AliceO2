@@ -41,6 +41,8 @@ class GBTBareDecoder
 
   bool isComplete() const;
 
+  void reset();
+
  private:
   std::vector<LocalBoardRO> mData{};    /// Vector of output data
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
@@ -54,23 +56,20 @@ class GBTBareDecoder
   std::array<InteractionRecord, crateparams::sNELinksPerGBT> mIRs{};      /// Interaction records per link
   std::array<uint16_t, crateparams::sNELinksPerGBT> mLastClock{};         /// Last clock per link
 
-  typedef void (GBTBareDecoder::*ProcessFunction)(size_t, uint8_t);
   typedef void (GBTBareDecoder::*OnDoneFunction)(size_t);
+  typedef void (GBTBareDecoder::*ProcessFunction)(size_t, uint8_t);
 
   OnDoneFunction mOnDoneLoc{&GBTBareDecoder::onDoneLoc};    ///! Processes the local board
   ProcessFunction mProcessReg{&GBTBareDecoder::processReg}; ///! Processes the regional board
 
   void processHalfReg(size_t idx, int halfReg, const gsl::span<const uint8_t>& bytes);
-  void reset();
   void addBoard(size_t ilink);
   void addLoc(size_t ilink);
   bool checkLoc(size_t ilink);
-  bool feedLoc(size_t ilink, uint8_t byte);
-  bool feedReg(size_t ilink, uint8_t byte);
   void onDoneLoc(size_t ilink);
   void onDoneLocDebug(size_t ilink);
   void processLoc(size_t ilink, uint8_t byte);
-  void processReg(size_t, uint8_t){}; /// Dummuy function
+  void processReg(size_t, uint8_t){}; /// Dummy function
   void processRegDebug(size_t ilink, uint8_t byte);
   bool updateIR(size_t ilink);
   bool invertPattern(LocalBoardRO& loc);

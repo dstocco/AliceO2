@@ -43,7 +43,7 @@ void GBTBareDecoder::init(uint16_t feeId, uint8_t mask, bool debugMode)
 void GBTBareDecoder::process(gsl::span<const uint8_t> bytes, const header::RAWDataHeader& rdh)
 {
   /// Decodes the buffer
-  reset();
+  // reset();
 
   if (mIRs[0].isDummy()) {
     for (auto& ir : mIRs) {
@@ -164,18 +164,6 @@ bool GBTBareDecoder::updateIR(size_t ilink)
   return false;
 }
 
-bool GBTBareDecoder::feedLoc(size_t ilink, uint8_t byte)
-{
-  /// Feeds the local board
-  return ((mMask & (1 << ilink)) && mELinkDecoders[ilink].add(byte, (raw::sSTARTBIT | raw::sCARDTYPE)) && mELinkDecoders[ilink].isComplete());
-}
-
-bool GBTBareDecoder::feedReg(size_t ilink, uint8_t byte)
-{
-  /// Feeds the regional board
-  return (mELinkDecoders[ilink].add(byte, (raw::sSTARTBIT)) && mELinkDecoders[ilink].isComplete());
-}
-
 void GBTBareDecoder::onDoneLoc(size_t ilink)
 {
   /// Performs action on decoded local board
@@ -217,7 +205,6 @@ void GBTBareDecoder::processLoc(size_t ilink, uint8_t byte)
 void GBTBareDecoder::processRegDebug(size_t ilink, uint8_t byte)
 {
   /// Processes the regional board information in debug mode
-  // if (feedReg(ilink, byte)) {
   if (mELinkDecoders[ilink].getNBytes() > 0) {
     mELinkDecoders[ilink].add(byte);
     if (mELinkDecoders[ilink].isComplete()) {
