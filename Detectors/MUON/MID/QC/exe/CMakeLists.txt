@@ -13,3 +13,9 @@ o2_add_executable(
   COMPONENT_NAME mid
   SOURCES raw-checker.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDQC)
+
+o2_add_executable(
+  raw-ul-decoder-checker
+  COMPONENT_NAME mid
+  SOURCES raw-ul-decoder-checker.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDRaw)
