@@ -20,6 +20,7 @@ o2_add_library(MIDWorkflow
                        src/RawAggregatorSpec.cxx
                        src/RawCheckerSpec.cxx
                        src/RawDecoderSpec.cxx
+                       src/RawDecoderWorkflow.cxx
                        src/RawGBTDecoderSpec.cxx
                        src/RawWriterSpec.cxx
                        src/RecoWorkflow.cxx
@@ -95,4 +96,15 @@ o2_add_executable(
 
 target_include_directories(
   ${exanamerawchecker}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-decoder-workflow
+  COMPONENT_NAME mid
+  SOURCES src/raw-decoder-workflow.cxx
+  TARGETVARNAME exanamerawdecoder
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamerawdecoder}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
