@@ -58,7 +58,7 @@ void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
   }
 }
 
-void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords)
+void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, EventType eventType)
 {
   /// Aggregates the decoded raw data
 
@@ -68,7 +68,9 @@ void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, g
 
   // Fill the map with ordered events
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
-    mOrderIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofRecords.begin());
+    if (rofIt->eventType == eventType) {
+      mOrderIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofRecords.begin());
+    }
   }
 
   const ROFRecord* rof = nullptr;
