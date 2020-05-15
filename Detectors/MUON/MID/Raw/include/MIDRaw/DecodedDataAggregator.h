@@ -19,9 +19,9 @@
 #include <map>
 #include <gsl/gsl>
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMapper.h"
-#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -30,7 +30,7 @@ namespace mid
 class DecodedDataAggregator
 {
  public:
-  void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords);
+  void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, EventType eventType = EventType::Standard);
 
   /// Gets the vector of data
   const std::vector<ColumnData>& getData() { return mData; }
