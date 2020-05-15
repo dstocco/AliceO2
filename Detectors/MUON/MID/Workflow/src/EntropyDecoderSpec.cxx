@@ -46,12 +46,32 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
-  auto& rofs = pc.outputs().make<std::vector<o2::mid::ROFRecord>>(OutputRef{"rofs"});
-  auto& cols = pc.outputs().make<std::vector<o2::mid::ColumnData>>(OutputRef{"cols"});
+  std::vector<o2::mid::ROFRecord> rofs;
+  std::vector<o2::mid::ColumnData> cols;
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::mid::CTF::getImage(buff.data());
   mCTFCoder.decode(ctfImage, rofs, cols);
+
+  auto first = rofs.begin(), last = rofs.begin(), rofIt = rofs.begin();
+  for (auto end = rofs.end(); rofIt != end; ++rofIt) {
+    if (rofIt->firstEntry == 0 && first != rofIt) {
+      std::vector<o2::mid::ROFRecord> subRofs(first, rofIt);
+      std::vector<o2::mid::ColumnData> subCols(cols.begin() + first->firstEntry, cols.begin() + last->firstEntry + last->nEntries);
+      o2::header::DataHeader::SubSpecificationType subSpec = static_cast<o2::header::DataHeader::SubSpecificationType>(first->eventType);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", subSpec, Lifetime::Timeframe}, subCols);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATAROF", subSpec, Lifetime::Timeframe}, subRofs);
+      first = rofIt;
+    }
+    last = rofIt;
+  }
+  if (!rofs.empty()) {
+    std::vector<o2::mid::ROFRecord> subRofs(first, rofIt);
+    std::vector<o2::mid::ColumnData> subCols(cols.begin() + first->firstEntry, cols.begin() + last->firstEntry + last->nEntries);
+    o2::header::DataHeader::SubSpecificationType subSpec = static_cast<o2::header::DataHeader::SubSpecificationType>(first->eventType);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", subSpec, Lifetime::Timeframe}, subCols);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATAROF", subSpec, Lifetime::Timeframe}, subRofs);
+  }
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << cols.size() << " MID columns in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s";
@@ -65,9 +85,11 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getEntropyDecoderSpec()
 {
-  std::vector<OutputSpec> outputs{
-    OutputSpec{{"rofs"}, "MID", "DATAROF", 0, Lifetime::Timeframe},
-    OutputSpec{{"cols"}, "MID", "DATA", 0, Lifetime::Timeframe}};
+  std::vector<OutputSpec> outputs;
+  for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < 3; ++subSpec) {
+    outputs.emplace_back(OutputSpec{header::gDataOriginMID, "DATA", subSpec});
+    outputs.emplace_back(OutputSpec{header::gDataOriginMID, "DATAROF", subSpec});
+  }
 
   return DataProcessorSpec{
     "mid-entropy-decoder",

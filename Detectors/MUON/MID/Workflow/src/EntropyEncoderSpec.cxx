@@ -48,7 +48,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto rofs = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("rofs");
   auto cols = pc.inputs().get<gsl::span<o2::mid::ColumnData>>("cols");
 
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"MID", "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe});
   mCTFCoder.encode(buffer, rofs, cols);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
   eeb->compactify();                  // eliminate unnecessary padding
@@ -67,13 +67,13 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyEncoderSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("rofs", "MID", "DATAROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("cols", "MID", "DATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("rofs", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), Lifetime::Timeframe);
+  inputs.emplace_back("cols", ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "mid-entropy-encoder",
     inputs,
-    Outputs{{"MID", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
 }
