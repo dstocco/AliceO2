@@ -30,7 +30,7 @@ namespace mid
 class DecodedDataAggregator
 {
  public:
-  void process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords);
+  void process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, EventType eventType = EventType::Standard);
 
   /// Gets the vector of data
   const std::vector<ColumnData>& getData() { return mData; }
