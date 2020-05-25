@@ -22,7 +22,7 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getRawDecoderSpec(bool isBare = false);
+framework::DataProcessorSpec getRawDecoderSpec(bool isBare = false, bool isDebugMode = false, const char* feeIdConfigFile = "", const char* crateMasksFile = "");
 } // namespace mid
 } // namespace o2
 
