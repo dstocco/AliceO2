@@ -23,9 +23,10 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "DPLUtils/DPLRawParser.h"
-#include "MIDRaw/FEEIdConfig.h"
+#include "Headers/RDHAny.h"
 #include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/Decoder.h"
+#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTBareDecoder.h"
 #include "MIDRaw/GBTUserLogicDecoder.h"
 
@@ -40,6 +41,8 @@ template <typename GBTDECODER>
 class RawDecoderDeviceDPL
 {
  public:
+  RawDecoderDeviceDPL<GBTDECODER>(bool isDebugMode, std::string feeIdConfigFilename, std::string crateMasksFilename) : mIsDebugMode(isDebugMode), mFeeIdConfigFilename(feeIdConfigFilename), mCrateMasksFilename(crateMasksFilename) {}
+
   void init(of::InitContext& ic)
   {
     auto stop = [this]() {
@@ -49,35 +52,28 @@ class RawDecoderDeviceDPL
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
 
-    auto feeIdConfigFilename = ic.options().get<std::string>("feeId-config-file");
-    if (!feeIdConfigFilename.empty()) {
-      o2::mid::FEEIdConfig feeIdConfig(feeIdConfigFilename.c_str());
+    if (!mFeeIdConfigFilename.empty()) {
+      o2::mid::FEEIdConfig feeIdConfig(mFeeIdConfigFilename.c_str());
       mDecoder.setFeeIdConfig(feeIdConfig);
     }
-    auto crateMasksFilename = ic.options().get<std::string>("crate-masks-file");
-    if (!crateMasksFilename.empty()) {
-      o2::mid::CrateMasks crateMasks(crateMasksFilename.c_str());
+    if (!mCrateMasksFilename.empty()) {
+      o2::mid::CrateMasks crateMasks(mCrateMasksFilename.c_str());
       mDecoder.setCrateMasks(crateMasks);
     }
 
-    auto isDebugMode = ic.options().get<bool>("debug-mode");
-    mDecoder.init(isDebugMode);
+    mDecoder.init(mIsDebugMode);
   }
 
   void run(of::ProcessingContext& pc)
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    auto msg = pc.inputs().get("mid_raw");
-    auto buffer = of::DataRefUtils::as<const uint8_t>(msg);
-
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
-    of::DPLRawParser parser(pc.inputs());
+    of::DPLRawParser parser(pc.inputs(), of::select("mid_raw:MID/RAWDATA"));
 
     mDecoder.clear();
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      // retrieving RDH v4
-      auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
+      auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mDecoder.process(payload, *rdhPtr);
     }
@@ -85,8 +81,8 @@ class RawDecoderDeviceDPL
     mDecoder.flush();
     mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODED", 0, of::Lifetime::Timeframe}, mDecoder.getData());
-    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODEDROF", 0, of::Lifetime::Timeframe}, mDecoder.getROFRecords());
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODED", 0}, mDecoder.getData());
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODEDROF", 0}, mDecoder.getROFRecords());
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
     mNROFs += mDecoder.getROFRecords().size();
@@ -94,33 +90,27 @@ class RawDecoderDeviceDPL
 
  private:
   Decoder<GBTDECODER> mDecoder{};
+  bool mIsDebugMode{false};
+  std::string mFeeIdConfigFilename{};
+  std::string mCrateMasksFilename{};
   std::chrono::duration<double> mTimer{0};     ///< full timer
   std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
   unsigned int mNROFs{0};                      /// Total number of processed ROFs
 };
 
-of::AlgorithmSpec getAlgorithmSpec(bool isBare)
-{
-  if (isBare) {
-    return of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTBareDecoder>>();
-  }
-  return of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTUserLogicDecoder>>();
-}
-
-framework::DataProcessorSpec getRawDecoderSpec(bool isBare)
+of::DataProcessorSpec getRawDecoderSpec(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile)
 {
   std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe}};
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DECODED", 0, of::Lifetime::Timeframe}, of::OutputSpec{header::gDataOriginMID, "DECODEDROF", 0, of::Lifetime::Timeframe}};
+
+  std::string feeIdConfigFilename(feeIdConfigFile);
+  std::string crateMasksFilename(crateMasksFile);
 
   return of::DataProcessorSpec{
     "MIDRawDecoder",
     {inputSpecs},
     {outputSpecs},
-    getAlgorithmSpec(isBare),
-    of::Options{
-      {"feeId-config-file", of::VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
-      {"crate-masks-file", of::VariantType::String, "", {"Filename with crate masks"}},
-      {"debug-mode", of::VariantType::Bool, false, {"Debug mode: sends all boards"}}}};
+    isBare ? of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTBareDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename) : of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTUserLogicDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename)};
 }
 } // namespace mid
 } // namespace o2
