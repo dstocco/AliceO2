@@ -22,6 +22,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTBareDecoder.h"
 #include "MIDRaw/GBTUserLogicDecoder.h"
@@ -38,8 +39,12 @@ class Decoder
  public:
   Decoder();
   ~Decoder() = default;
+  /// Sets the FEE ID config file
   void setFeeIdConfig(const FEEIdConfig& feeIdConfig) { mFEEIdConfig = feeIdConfig; }
+  /// Sets the crate masks
   void setCrateMasks(const CrateMasks& masks) { mMasks = masks; }
+  /// Sets the electronics delays
+  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
   void init(bool isDebugMode = false);
   void process(gsl::span<const uint8_t> bytes);
   template <typename RDH = o2::header::RAWDataHeader>
@@ -67,6 +72,7 @@ class Decoder
   std::array<GBTDECODER, crateparams::sNGBTs> mGBTDecoders{}; /// GBT decoders
   FEEIdConfig mFEEIdConfig{};                                 /// Crate FEEID mapper
   CrateMasks mMasks{};                                        /// Crate masks
+  ElectronicsDelay mElectronicsDelay{};                       /// Delay in the electronics
 };
 
 } // namespace mid

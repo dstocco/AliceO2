@@ -48,6 +48,7 @@ void Decoder<GBTDECODER>::init(bool isDebugMode)
     } else {
       mGBTDecoders[igbt].init(igbt, isDebugMode);
     }
+    mGBTDecoders[igbt].setElectronicsDelay(mElectronicsDelay);
   }
 }
 
