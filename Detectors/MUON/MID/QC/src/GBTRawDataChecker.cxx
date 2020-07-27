@@ -446,7 +446,7 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
         board.triggerWord = 0;
         auto ir = rofIt->interactionRecord;
         if (id >= crateparams::sMaxNBoardsInLink) {
-          uint16_t delayRegLocal = 6;
+          uint16_t delayRegLocal = mElectronicsDelay.regToLocal;
           if (rofIt->interactionRecord.bc < delayRegLocal) {
             ir -= (constants::lhc::LHCMaxBunches - mResetVal - 1);
           }
