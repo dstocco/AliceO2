@@ -24,9 +24,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/RDHAny.h"
-#include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/Decoder.h"
-#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTBareDecoder.h"
 #include "MIDRaw/GBTUserLogicDecoder.h"
 
@@ -41,7 +39,7 @@ template <typename GBTDECODER>
 class RawDecoderDeviceDPL
 {
  public:
-  RawDecoderDeviceDPL<GBTDECODER>(bool isDebugMode, std::string feeIdConfigFilename, std::string crateMasksFilename) : mIsDebugMode(isDebugMode), mFeeIdConfigFilename(feeIdConfigFilename), mCrateMasksFilename(crateMasksFilename) {}
+  RawDecoderDeviceDPL<GBTDECODER>(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay) : mIsDebugMode(isDebugMode), mFeeIdConfig(feeIdConfig), mCrateMasks(crateMasks), mElectronicsDelay(electronicsDelay) {}
 
   void init(of::InitContext& ic)
   {
@@ -52,14 +50,8 @@ class RawDecoderDeviceDPL
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
 
-    if (!mFeeIdConfigFilename.empty()) {
-      o2::mid::FEEIdConfig feeIdConfig(mFeeIdConfigFilename.c_str());
-      mDecoder.setFeeIdConfig(feeIdConfig);
-    }
-    if (!mCrateMasksFilename.empty()) {
-      o2::mid::CrateMasks crateMasks(mCrateMasksFilename.c_str());
-      mDecoder.setCrateMasks(crateMasks);
-    }
+    mDecoder.setFeeIdConfig(mFeeIdConfig);
+    mDecoder.setCrateMasks(mCrateMasks);
 
     mDecoder.init(mIsDebugMode);
   }
@@ -91,26 +83,29 @@ class RawDecoderDeviceDPL
  private:
   Decoder<GBTDECODER> mDecoder{};
   bool mIsDebugMode{false};
-  std::string mFeeIdConfigFilename{};
-  std::string mCrateMasksFilename{};
+  FEEIdConfig mFeeIdConfig{};
+  CrateMasks mCrateMasks{};
+  ElectronicsDelay mElectronicsDelay{};
   std::chrono::duration<double> mTimer{0};     ///< full timer
   std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
   unsigned int mNROFs{0};                      /// Total number of processed ROFs
 };
 
-of::DataProcessorSpec getRawDecoderSpec(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile)
+of::DataProcessorSpec getRawDecoderSpec(bool isBare)
+{
+  return getRawDecoderSpec(isBare, false, FEEIdConfig(), CrateMasks(), ElectronicsDelay());
+}
+
+of::DataProcessorSpec getRawDecoderSpec(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay)
 {
   std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe}};
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DECODED", 0, of::Lifetime::Timeframe}, of::OutputSpec{header::gDataOriginMID, "DECODEDROF", 0, of::Lifetime::Timeframe}};
-
-  std::string feeIdConfigFilename(feeIdConfigFile);
-  std::string crateMasksFilename(crateMasksFile);
 
   return of::DataProcessorSpec{
     "MIDRawDecoder",
     {inputSpecs},
     {outputSpecs},
-    isBare ? of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTBareDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename) : of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTUserLogicDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename)};
+    isBare ? of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTBareDecoder>>(isDebugMode, feeIdConfig, crateMasks, electronicsDelay) : of::adaptFromTask<o2::mid::RawDecoderDeviceDPL<o2::mid::GBTUserLogicDecoder>>(isDebugMode, feeIdConfig, crateMasks, electronicsDelay)};
 }
 } // namespace mid
 } // namespace o2
