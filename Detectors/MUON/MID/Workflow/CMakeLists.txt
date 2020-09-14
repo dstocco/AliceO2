@@ -15,28 +15,30 @@ o2_add_library(MIDWorkflow
                        src/DigitReaderSpec.cxx
                        src/RecoWorkflowMC.cxx
                        src/TrackerMCSpec.cxx
-		       src/ClusterizerSpec.cxx
-		       src/RecoWorkflow.cxx
-		       src/RawDecoderSpec.cxx
-		       src/RawAggregatorSpec.cxx
-		       src/TrackerSpec.cxx
-		       src/DigitReaderSpec.cxx
-		       src/DigitsToRawWorkflow.cxx
-		       src/RawWriterSpec.cxx
-		       PUBLIC_LINK_LIBRARIES
-		       O2::Framework
-		       O2::SimConfig
-		       ms_gsl::ms_gsl
-		       O2::DetectorsBase
-		       O2::SimulationDataFormat
-		       O2::DataFormatsMID
-		       O2::DPLUtils
-		       O2::MIDSimulation
-		       O2::MIDClustering
-		       O2::MIDTracking
-		       O2::MIDRaw
-		       )
-		     
+                       src/ClusterizerSpec.cxx
+                       src/RecoWorkflow.cxx
+                       src/RawAggregatorSpec.cxx
+                       src/RawCheckerSpec.cxx
+                       src/RawDecoderSpec.cxx
+                       src/RawGBTDecoderSpec.cxx
+                       src/TrackerSpec.cxx
+                       src/DigitReaderSpec.cxx
+                       src/DigitsToRawWorkflow.cxx
+                       src/RawWriterSpec.cxx
+                       PUBLIC_LINK_LIBRARIES
+                       O2::Framework
+                       O2::SimConfig
+                       ms_gsl::ms_gsl
+                       O2::DetectorsBase
+                       O2::SimulationDataFormat
+                       O2::DataFormatsMID
+                       O2::DPLUtils
+                       O2::MIDClustering
+                       O2::MIDQC
+                       O2::MIDRaw
+                       O2::MIDTracking
+                       O2::MIDSimulation)
+
 o2_add_executable(
   reco-workflow-mc
   COMPONENT_NAME mid
@@ -73,10 +75,9 @@ target_include_directories(
 o2_add_executable(
   raw-checker-workflow
   COMPONENT_NAME mid
-  SOURCES src/raw-checker-workflow.cxx src/RawCheckerSpec.cxx
-          src/RawDecoderSpec.cxx src/RawGBTDecoderSpec.cxx TARGETVARNAME
-          exanamerawchecker
-  PUBLIC_LINK_LIBRARIES O2::Framework ms_gsl::ms_gsl O2::MIDRaw O2::MIDQC)
+  SOURCES src/raw-checker-workflow.cxx
+  TARGETVARNAME exanamerawchecker
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 target_include_directories(
   ${exanamerawchecker}
