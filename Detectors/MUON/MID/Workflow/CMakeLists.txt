@@ -20,6 +20,7 @@ o2_add_library(MIDWorkflow
                        src/RawAggregatorSpec.cxx
                        src/RawCheckerSpec.cxx
                        src/RawDecoderSpec.cxx
+                       src/RawDecoderWorkflow.cxx
                        src/RawGBTDecoderSpec.cxx
                        src/TrackerSpec.cxx
                        src/DigitReaderSpec.cxx
@@ -86,11 +87,9 @@ target_include_directories(
 o2_add_executable(
   raw-decoder-workflow
   COMPONENT_NAME mid
-  SOURCES src/raw-decoder-workflow.cxx src/RawAggregatorSpec.cxx
-          src/RawDecoderSpec.cxx src/RawDecoderWorkflow.cxx TARGETVARNAME
-          exanamerawdecoder
-  PUBLIC_LINK_LIBRARIES O2::Framework ms_gsl::ms_gsl O2::DataFormatsMID
-                        O2::MIDRaw)
+  SOURCES src/raw-decoder-workflow.cxx
+  TARGETVARNAME exanamerawdecoder
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 target_include_directories(
   ${exanamerawdecoder}
