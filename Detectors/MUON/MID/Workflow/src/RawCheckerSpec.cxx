@@ -48,29 +48,22 @@ template <typename RAWCHECKER>
 class RawCheckerDeviceDPL
 {
  public:
-  RawCheckerDeviceDPL<RAWCHECKER>(std::string outFilename, std::string feeIdConfigFilename, std::string crateMasksFilename, size_t maxErrors) : mOutFilename(outFilename), mFeeIdConfigFilename(feeIdConfigFilename), mCrateMasksFilename(crateMasksFilename), mMaxErrors(maxErrors) {}
+  RawCheckerDeviceDPL<RAWCHECKER>(std::string outFilename, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, size_t maxErrors) : mOutFilename(outFilename), mFeeIdConfig(feeIdConfig), mCrateMasks(crateMasks), mElectronicsDelay(electronicsDelay), mMaxErrors(maxErrors) {}
 
   void init(o2::framework::InitContext& ic)
   {
 
-    o2::mid::CrateMasks crateMasks;
-    if (!mCrateMasksFilename.empty()) {
-      crateMasks = o2::mid::CrateMasks(mCrateMasksFilename.c_str());
-    }
+    mChecker.setElectronicsDelay(mElectronicsDelay);
     if constexpr (std::is_same_v<RAWCHECKER, RawDataChecker>) {
-      mChecker.init(crateMasks);
+      mChecker.init(mCrateMasks);
       if (mOutFilename.empty()) {
         mOutFilename = "raw_checker_out.txt";
       }
     } else {
-      o2::mid::FEEIdConfig feeIdConfig;
-      if (!mFeeIdConfigFilename.empty()) {
-        feeIdConfig = o2::mid::FEEIdConfig(mFeeIdConfigFilename.c_str());
-      }
-      std::vector<uint32_t> gbtIds = feeIdConfig.getConfiguredGBTIds();
+      std::vector<uint32_t> gbtIds = mFeeIdConfig.getConfiguredGBTIds();
       auto idx = ic.services().get<o2::framework::ParallelContext>().index1D();
-      auto feeId = feeIdConfig.getFeeId(gbtIds[idx]);
-      mChecker.init(feeId, crateMasks.getMask(feeId));
+      auto feeId = mFeeIdConfig.getFeeId(gbtIds[idx]);
+      mChecker.init(feeId, mCrateMasks.getMask(feeId));
       if (mOutFilename.empty()) {
         std::stringstream ss;
         ss << "raw_checker_out_GBT_" << feeId << ".txt";
@@ -118,41 +111,34 @@ class RawCheckerDeviceDPL
  private:
   RAWCHECKER mChecker{};                       ///< Raw data checker
   std::string mOutFilename{};                  ///< Output filename
-  std::string mFeeIdConfigFilename{};          ///< FEE ID configuration file
-  std::string mCrateMasksFilename{};           ///< Crate masks file
+  FEEIdConfig mFeeIdConfig{};                  ///< FEE ID configuration file
+  CrateMasks mCrateMasks{};                    ///< Crate masks file
+  ElectronicsDelay mElectronicsDelay{};        ///< Delay in the electronics
   size_t mMaxErrors{0};                        ///< Maximum number of errors
   std::ofstream mOutFile{};                    ///< Output file
   std::chrono::duration<double> mTimer{0};     ///< full timer
   std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
 };
 
-framework::DataProcessorSpec getRawCheckerSpec(const char* outFile, const char* feeIdConfigFile, const char* crateMasksFile, size_t maxErrors)
+framework::DataProcessorSpec getRawCheckerSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, const char* outFile, size_t maxErrors)
 {
   std::vector<o2::framework::InputSpec> inputSpecs{o2::framework::InputSpec{"mid_decoded", header::gDataOriginMID, "DECODED", 0, o2::framework::Lifetime::Timeframe}, o2::framework::InputSpec{"mid_decoded_rof", header::gDataOriginMID, "DECODEDROF", 0, o2::framework::Lifetime::Timeframe}};
 
   std::string outFilename(outFile);
-  std::string feeIdConfigFilename(feeIdConfigFile);
-  std::string crateMasksFilename(crateMasksFile);
 
   return o2::framework::DataProcessorSpec{
     "MIDRawDataChecker",
     {inputSpecs},
     {o2::framework::Outputs{}},
-    feeIdConfigFilename.empty()
-      ? o2::framework::AlgorithmSpec{
-          o2::framework::adaptFromTask<RawCheckerDeviceDPL<RawDataChecker>>(outFilename, feeIdConfigFilename, crateMasksFilename, maxErrors)}
-      : o2::framework::adaptFromTask<RawCheckerDeviceDPL<GBTRawDataChecker>>(outFilename, feeIdConfigFilename, crateMasksFilename, maxErrors)};
+    (feeIdConfig.getConfiguredFeeIds().size() < 5) ? o2::framework::AlgorithmSpec{
+                                                       o2::framework::adaptFromTask<RawCheckerDeviceDPL<RawDataChecker>>(outFilename, feeIdConfig, crateMasks, electronicsDelay, maxErrors)}
+                                                   : o2::framework::adaptFromTask<RawCheckerDeviceDPL<GBTRawDataChecker>>(outFilename, feeIdConfig, crateMasks, electronicsDelay, maxErrors)};
 }
 
-o2::framework::WorkflowSpec getRawCheckerSpecs(const char* feeIdConfigFile, size_t maxErrors)
+o2::framework::WorkflowSpec getRawCheckerSpecs(const FEEIdConfig& feeIdConfig, const ElectronicsDelay& electronicsDelay, size_t maxErrors)
 {
-  FEEIdConfig feeIdConfig;
-  std::string feeIdConfigFilename(feeIdConfigFile);
-  if (!feeIdConfigFilename.empty()) {
-    feeIdConfig = FEEIdConfig(feeIdConfigFilename.c_str());
-  }
   std::vector<uint32_t> gbtIds = feeIdConfig.getConfiguredGBTIds();
-  o2::framework::WorkflowSpec specs = parallel(getRawCheckerSpec("", feeIdConfigFile, "", maxErrors), gbtIds.size(), [feeIdConfig, gbtIds](o2::framework::DataProcessorSpec& spec, size_t index) {
+  o2::framework::WorkflowSpec specs = parallel(getRawCheckerSpec(feeIdConfig, CrateMasks(), electronicsDelay, "", maxErrors), gbtIds.size(), [feeIdConfig, gbtIds](o2::framework::DataProcessorSpec& spec, size_t index) {
     auto feeId = feeIdConfig.getFeeId(gbtIds[index]);
     o2::framework::DataSpecUtils::updateMatchingSubspec(spec.inputs[0], feeId);
     o2::framework::DataSpecUtils::updateMatchingSubspec(spec.inputs[1], feeId);

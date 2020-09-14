@@ -18,13 +18,16 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
+#include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/ElectronicsDelay.h"
+#include "MIDRaw/FEEIdConfig.h"
 
 namespace o2
 {
 namespace mid
 {
-o2::framework::DataProcessorSpec getRawGBTDecoderSpec(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile = "");
-o2::framework::WorkflowSpec getRawGBTDecoderSpecs(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile = "");
+o2::framework::DataProcessorSpec getRawGBTDecoderSpec(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay);
+o2::framework::WorkflowSpec getRawGBTDecoderSpecs(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay);
 } // namespace mid
 } // namespace o2
 

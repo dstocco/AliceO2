@@ -19,12 +19,16 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
 
+#include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/ElectronicsDelay.h"
+#include "MIDRaw/FEEIdConfig.h"
+
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getRawCheckerSpec(const char* outFile = "", const char* feeIdConfigFile = "", const char* crateMasksFile = "", size_t maxErrors = 10000);
-framework::WorkflowSpec getRawCheckerSpecs(const char* feeIdConfigFile = "", size_t maxErrors = 10000);
+framework::DataProcessorSpec getRawCheckerSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, const char* outFile = "", size_t maxErrors = 10000);
+framework::WorkflowSpec getRawCheckerSpecs(const FEEIdConfig& feeIdConfig, const ElectronicsDelay& electronicsDelay, size_t maxErrors = 10000);
 } // namespace mid
 } // namespace o2
 

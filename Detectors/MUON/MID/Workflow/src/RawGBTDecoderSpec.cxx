@@ -29,8 +29,6 @@
 #include "Headers/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/CrateMasks.h"
-#include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTBareDecoder.h"
 #include "MIDRaw/GBTUserLogicDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
@@ -44,7 +42,7 @@ template <typename GBTDECODER>
 class RawGBTDecoderDeviceDPL
 {
  public:
-  RawGBTDecoderDeviceDPL<GBTDECODER>(bool isDebugMode, std::string feeIdConfigFilename, std::string crateMasksFilename) : mIsDebugMode(isDebugMode), mFeeIdConfigFilename(feeIdConfigFilename), mCrateMasksFilename(crateMasksFilename) {}
+  RawGBTDecoderDeviceDPL<GBTDECODER>(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay) : mIsDebugMode(isDebugMode), mFeeIdConfig(feeIdConfig), mCrateMasks(crateMasks), mElectronicsDelay(electronicsDelay) {}
 
   void init(o2::framework::InitContext& ic)
   {
@@ -54,20 +52,11 @@ class RawGBTDecoderDeviceDPL
     };
     ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);
 
-    FEEIdConfig feeIdConfig;
-    if (!mFeeIdConfigFilename.empty()) {
-      feeIdConfig = FEEIdConfig(mFeeIdConfigFilename.c_str());
-    }
-    CrateMasks crateMasks;
-    if (!mCrateMasksFilename.empty()) {
-      crateMasks = CrateMasks(mCrateMasksFilename.c_str());
-    }
-
-    std::vector<uint32_t> gbtIds = feeIdConfig.getConfiguredGBTIds();
+    std::vector<uint32_t> gbtIds = mFeeIdConfig.getConfiguredGBTIds();
     auto idx = ic.services().get<o2::framework::ParallelContext>().index1D();
-    mFeeId = feeIdConfig.getFeeId(gbtIds[idx]);
+    mFeeId = mFeeIdConfig.getFeeId(gbtIds[idx]);
     if constexpr (std::is_same_v<GBTDECODER, GBTBareDecoder>) {
-      mDecoder.init(mFeeId, crateMasks.getMask(mFeeId), mIsDebugMode);
+      mDecoder.init(mFeeId, mCrateMasks.getMask(mFeeId), mIsDebugMode);
     } else {
       mDecoder.init(mFeeId, mIsDebugMode);
     }
@@ -100,38 +89,31 @@ class RawGBTDecoderDeviceDPL
  private:
   GBTDECODER mDecoder{};
   bool mIsDebugMode{false};
-  std::string mFeeIdConfigFilename{};
-  std::string mCrateMasksFilename{};
+  FEEIdConfig mFeeIdConfig{};
+  CrateMasks mCrateMasks{};
+  ElectronicsDelay mElectronicsDelay{};
   uint16_t mFeeId{0};
   std::chrono::duration<double> mTimer{0};     ///< full timer
   std::chrono::duration<double> mTimerAlgo{0}; ///< algorithm timer
   unsigned int mNROFs{0};                      /// Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getRawGBTDecoderSpec(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile)
+framework::DataProcessorSpec getRawGBTDecoderSpec(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay)
 {
   std::vector<o2::framework::InputSpec> inputSpecs{o2::framework::InputSpec{"mid_raw", header::gDataOriginMID, header::gDataDescriptionRawData, 0, o2::framework::Lifetime::Timeframe}};
   std::vector<o2::framework::OutputSpec> outputSpecs{o2::framework::OutputSpec{header::gDataOriginMID, "DECODED", 0, o2::framework::Lifetime::Timeframe}, o2::framework::OutputSpec{header::gDataOriginMID, "DECODEDROF", 0, o2::framework::Lifetime::Timeframe}};
-
-  std::string feeIdConfigFilename(feeIdConfigFile);
-  std::string crateMasksFilename(crateMasksFile);
 
   return o2::framework::DataProcessorSpec{
     "MIDRawGBTDecoder",
     {inputSpecs},
     {outputSpecs},
-    isBare ? o2::framework::adaptFromTask<RawGBTDecoderDeviceDPL<GBTBareDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename) : o2::framework::adaptFromTask<RawGBTDecoderDeviceDPL<GBTUserLogicDecoder>>(isDebugMode, feeIdConfigFilename, crateMasksFilename)};
+    isBare ? o2::framework::adaptFromTask<RawGBTDecoderDeviceDPL<GBTBareDecoder>>(isDebugMode, feeIdConfig, crateMasks, electronicsDelay) : o2::framework::adaptFromTask<RawGBTDecoderDeviceDPL<GBTUserLogicDecoder>>(isDebugMode, feeIdConfig, crateMasks, electronicsDelay)};
 }
 
-o2::framework::WorkflowSpec getRawGBTDecoderSpecs(bool isBare, bool isDebugMode, const char* feeIdConfigFile, const char* crateMasksFile)
+o2::framework::WorkflowSpec getRawGBTDecoderSpecs(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay)
 {
-  FEEIdConfig feeIdConfig;
-  std::string feeIdConfigFilename(feeIdConfigFile);
-  if (!feeIdConfigFilename.empty()) {
-    feeIdConfig = FEEIdConfig(feeIdConfigFilename.c_str());
-  }
   std::vector<uint32_t> gbtIds = feeIdConfig.getConfiguredGBTIds();
-  o2::framework::WorkflowSpec specs = parallel(getRawGBTDecoderSpec(isBare, isDebugMode, feeIdConfigFile, crateMasksFile), gbtIds.size(), [feeIdConfig, gbtIds](o2::framework::DataProcessorSpec& spec, size_t index) {
+  o2::framework::WorkflowSpec specs = parallel(getRawGBTDecoderSpec(isBare, isDebugMode, feeIdConfig, crateMasks, electronicsDelay), gbtIds.size(), [feeIdConfig, gbtIds](o2::framework::DataProcessorSpec& spec, size_t index) {
     auto feeId = feeIdConfig.getFeeId(gbtIds[index]);
     o2::framework::DataSpecUtils::updateMatchingSubspec(spec.inputs[0], gbtIds[index]);
     o2::framework::DataSpecUtils::updateMatchingSubspec(spec.outputs[0], feeId);
