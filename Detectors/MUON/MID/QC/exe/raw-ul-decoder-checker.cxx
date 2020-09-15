@@ -18,7 +18,9 @@
 #include <fstream>
 #include <unordered_map>
 #include <vector>
+#include <fmt/format.h>
 #include "boost/program_options.hpp"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/Decoder.h"
@@ -103,9 +105,7 @@ bool isSame(const o2::mid::LocalBoardRO& loc1, const o2::mid::LocalBoardRO& loc2
 
 std::string printIRHex(const o2::InteractionRecord& ir)
 {
-  std::stringstream ss;
-  ss << std::hex << std::showbase << ir;
-  return ss.str();
+  return fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", ir.bc, ir.orbit);
 }
 
 bool checkBoards(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::vector<o2::mid::ROFRecord>& bareRofs, const std::vector<o2::mid::LocalBoardRO>& ulData, const std::vector<o2::mid::ROFRecord>& ulRofs, bool isLoc, std::ofstream& out)
@@ -125,7 +125,7 @@ bool checkBoards(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::
     bool isCurrentOk = true;
     for (auto bareIt = bareItem.second.begin(); bareIt != bareItem.second.end(); ++bareIt) {
       if (ulIt == ulItem->second.end()) {
-        out << "\nNo more ul from: " << bareData[*bareIt];
+        out << "\nNo more ul from: " << bareData[*bareIt] << std::endl;
         isCurrentOk = false;
       } else if (!isSame(ulData[*ulIt], bareData[*bareIt]) || ulRofs[*ulIt].interactionRecord != bareRofs[*bareIt].interactionRecord) {
         out << "\nFirst divergence at element " << bareIt - bareItem.second.begin() + 1 << " / " << bareItem.second.size() << ":" << std::endl;
@@ -163,7 +163,7 @@ bool checkAll(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::vec
     auto ulItem = ulIndexes.find(bareItem.first);
     if (ulItem == ulIndexes.end()) {
       isOk = false;
-      out << "\nCannot find: " << ir << " in ul\n";
+      out << "\nCannot find: " << printIRHex(ir) << " in ul\n";
       continue;
     }
     std::vector<size_t> auxVec = ulItem->second;
@@ -193,7 +193,7 @@ bool checkAll(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::vec
     auto bareItem = bareIndexes.find(ulItem.first);
     if (bareItem == bareIndexes.end()) {
       isOk = false;
-      out << "\nCannot find: " << findIR(ulItem.first, ulRofs) << " in bare\n";
+      out << "\nCannot find: " << printIRHex(findIR(ulItem.first, ulRofs)) << " in bare\n";
     }
   }
   return isOk;
@@ -213,6 +213,7 @@ int main(int argc, char* argv[])
           ("bare-filename", po::value<std::string>(&bareFilename),"Input raw filename with bare CRU")
           ("feeId-config-file", po::value<std::string>(&feeIdConfigFilename),"Filename with crate FEE ID correspondence")
           ("crate-masks-file", po::value<std::string>(&crateMasksFilename),"Filename with crate masks")
+          ("electronics-delay-file", po::value<std::string>(),"Filename with electronics delay")
           ("outFilename", po::value<std::string>(&outFilename),"Output filename")
           ("full", po::value<bool>()->implicit_value(true),"Full check");
 
@@ -251,6 +252,13 @@ int main(int argc, char* argv[])
     o2::mid::CrateMasks crateMasks(crateMasksFilename.c_str());
     bareDecoder.setCrateMasks(crateMasks);
     ulDecoder.setCrateMasks(crateMasks);
+  }
+
+  o2::mid::ElectronicsDelay electronicsDelay;
+  if (vm.count("electronics-delay-file")) {
+    o2::mid::ElectronicsDelay electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
+    bareDecoder.setElectronicsDelay(electronicsDelay);
+    ulDecoder.setElectronicsDelay(electronicsDelay);
   }
 
   bareDecoder.init(true);
