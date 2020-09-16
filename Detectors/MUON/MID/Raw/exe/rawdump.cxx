@@ -55,9 +55,7 @@ void decode(o2::mid::Decoder<GBTDECODER>& decoder, gsl::span<const uint8_t> payl
   decoder.process(payload, rdh);
   decoder.flush();
   for (auto& rof : decoder.getROFRecords()) {
-    std::stringstream ss;
-    ss << std::hex << std::showbase << rof.interactionRecord;
-    out << ss.str() << std::endl;
+    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", rof.interactionRecord.bc, rof.interactionRecord.orbit) << std::endl;
     for (auto colIt = decoder.getData().begin() + rof.firstEntry; colIt != decoder.getData().begin() + rof.firstEntry + rof.nEntries; ++colIt) {
       out << *colIt << std::endl;
     }
@@ -132,6 +130,8 @@ int main(int argc, char* argv[])
   unsigned long int iHB = 0;
   bool isRdhOnly = vm.count("rdh-only") > 0;
 
+  size_t wordLength = isBare ? 16 : 32;
+
   for (auto& filename : inputfiles) {
     // Here we use a custom file reader to be able to read all kind of raw data,
     // even those with a malformed structure in terms of number of HBFs per time frame
@@ -156,19 +156,23 @@ int main(int argc, char* argv[])
               decode(ulDecoder, payload, *rdhPtr, out);
             }
           } else if (!isRdhOnly) {
-            for (size_t iword = 0; iword < payload.size(); iword += 16) {
-              auto word = payload.subspan(iword, 16);
-              for (auto it = word.rbegin(); it != word.rend(); ++it) {
-                auto ibInWord = word.rend() - it;
-                if (isBare) {
+            for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
+              auto word = payload.subspan(iword, wordLength);
+              if (isBare) {
+                for (auto it = word.rbegin(); it != word.rend(); ++it) {
+                  auto ibInWord = word.rend() - it;
                   if (ibInWord == 4 || ibInWord == 9) {
                     out << " ";
                   }
                   if (ibInWord == 5 || ibInWord == 10) {
                     out << "  ";
                   }
+                  out << fmt::format("{:02x}", static_cast<int>(*it));
                 }
-                out << fmt::format("{:02x}", static_cast<int>(*it));
+              } else {
+                for (auto it = word.begin(); it != word.end(); ++it) {
+                  out << fmt::format("{:02x}", static_cast<int>(*it));
+                }
               }
               out << "\n";
             }
