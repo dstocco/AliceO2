@@ -397,7 +397,7 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
     ++mStatistics[0];
     if (!checkEvent(isTriggered, gbtEvent.regs, gbtEvent.locs)) {
       std::stringstream ss;
-      ss << std::hex << std::showbase << evtIdxItem.first;
+      ss << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", evtIdxItem.first.bc, evtIdxItem.first.orbit);
       if (!gbtEvent.pages.empty()) {
         ss << "   [in";
         for (auto& page : gbtEvent.pages) {
