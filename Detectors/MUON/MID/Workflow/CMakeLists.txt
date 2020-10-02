@@ -13,6 +13,7 @@ o2_add_library(MIDWorkflow
                SOURCES 
                        src/ClusterizerSpec.cxx
                        src/ClusterizerMCSpec.cxx
+                       src/DecodedDigitConverterSpec.cxx
                        src/DigitReaderSpec.cxx
                        src/DigitsToRawWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
@@ -118,4 +119,15 @@ o2_add_executable(
 
 target_include_directories(
   ${exanamedigitstoraw}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  decoded-digits-writer-workflow
+  COMPONENT_NAME mid
+  SOURCES src/decoded-digits-writer-workflow.cxx
+  TARGETVARNAME exanamedigitswriter
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanamedigitswriter}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
