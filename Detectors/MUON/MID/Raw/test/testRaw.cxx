@@ -89,13 +89,14 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   std::string tmpFilename = tmpFilename0 + ".raw";
   o2::mid::Encoder encoder;
   encoder.init(tmpFilename0.c_str());
+  std::string tmpConfigFilename = "tmp_MIDConfig.cfg";
+  encoder.getWriter().writeConfFile("MID", "RAWDATA", tmpConfigFilename.c_str(), false);
   for (auto& item : inData) {
     encoder.process(item.second, item.first, inEventType);
   }
   encoder.finalize();
 
-  o2::raw::RawFileReader rawReader;
-  rawReader.addFile(tmpFilename.c_str());
+  o2::raw::RawFileReader rawReader(tmpConfigFilename.c_str());
   rawReader.init();
   std::vector<char> buffer;
   for (size_t itf = 0; itf < rawReader.getNTimeFrames(); ++itf) {
@@ -114,6 +115,7 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   fair::Logger::SetConsoleSeverity(severity);
 
   std::remove(tmpFilename.c_str());
+  std::remove(tmpConfigFilename.c_str());
 
   o2::mid::Decoder<o2::mid::GBTUserLogicDecoder> decoder;
   gsl::span<const uint8_t> data(reinterpret_cast<uint8_t*>(buffer.data()), buffer.size());
@@ -134,7 +136,11 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
 
   ir.bc = 200;
   inData[ir].emplace_back(getColData(3, 4, 0xFF00, 0xFF));
-  inData[ir].emplace_back(getColData(12, 4, 0xFF));
+  inData[ir].emplace_back(getColData(12, 4, 0, 0, 0xFF));
+
+  ir.bc = 400;
+  inData[ir].emplace_back(getColData(5, 1, 0xFF00, 0xFF));
+  inData[ir].emplace_back(getColData(14, 1, 0, 0, 0, 0xFF));
 
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<o2::mid::LocalBoardRO> outData;
