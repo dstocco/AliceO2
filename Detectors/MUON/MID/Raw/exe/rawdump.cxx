@@ -130,6 +130,8 @@ int main(int argc, char* argv[])
   unsigned long int iHB = 0;
   bool isRdhOnly = vm.count("rdh-only") > 0;
 
+  size_t wordLength = isBare ? 16 : 32;
+
   for (auto& filename : inputfiles) {
     // Here we use a custom file reader to be able to read all kind of raw data,
     // even those with a malformed structure in terms of number of HBFs per time frame
@@ -154,8 +156,8 @@ int main(int argc, char* argv[])
               decode(ulDecoder, payload, *rdhPtr, out);
             }
           } else if (!isRdhOnly) {
-            for (size_t iword = 0; iword < payload.size(); iword += 16) {
-              auto word = payload.subspan(iword, 16);
+            for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
+              auto word = payload.subspan(iword, wordLength);
               for (auto it = word.rbegin(); it != word.rend(); ++it) {
                 auto ibInWord = word.rend() - it;
                 if (isBare) {
