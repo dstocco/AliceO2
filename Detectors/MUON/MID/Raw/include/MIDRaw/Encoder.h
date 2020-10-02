@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <array>
 #include <map>
+#include <vector>
 #include <gsl/gsl>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/RawFileWriter.h"
@@ -27,6 +28,8 @@
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/LocalBoardRO.h"
+
+class RDHAny;
 
 namespace o2
 {
@@ -44,7 +47,10 @@ class Encoder
 
   auto& getWriter() { return mRawWriter; }
 
+  void emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const;
+
  private:
+  std::vector<char> getBuffer(uint16_t feeId);
   void flush(uint16_t feeId, const InteractionRecord& ir);
   void hbTrigger(const InteractionRecord& ir);
 
@@ -56,6 +62,7 @@ class Encoder
   InteractionRecord mLastIR{};                /// Last interaction record
 
   std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
+  std::array<std::vector<char>, crateparams::sNGBTs> mOrbitResponse{}; /// Response to orbit trigger
   std::array<uint32_t, crateparams::sNGBTs> mGBTIds{};                 /// Array of GBT Ids
 };
 } // namespace mid

@@ -42,44 +42,59 @@ void Encoder::init(const char* filename, bool perLink, int verbosity)
     mGBTEncoders[feeId].setMask(masks.getMask(feeId));
     mGBTIds[feeId] = gbtId;
     lcnt++;
+
+    // Initializes the trigger response to be added to the empty HBs
+    mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
+    mOrbitResponse[feeId] = getBuffer(feeId);
   }
+
+  mRawWriter.setEmptyPageCallBack(this);
+}
+
+void Encoder::emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const
+{
+  /// Response to orbit triggers in empty HBFs
+  auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
+  toAdd = mOrbitResponse[feeId];
 }
 
 void Encoder::hbTrigger(const InteractionRecord& ir)
 {
   /// Processes HB trigger
-  if (mLastIR.isDummy()) {
-    mLastIR = o2::raw::HBFUtils::Instance().getFirstIR();
-  }
-
-  std::vector<InteractionRecord> HBIRVec;
-  o2::raw::HBFUtils::Instance().fillHBIRvector(HBIRVec, mLastIR + 1, ir);
-  for (auto& hbIr : HBIRVec) {
+  if (ir.orbit != mLastIR.orbit) {
+    // There was an orbit change
     for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+      // Flush the data corresponding to the previous orbit
       flush(feeId, mLastIR);
+      // Add the trigger response
       mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
     }
-    mLastIR = hbIr;
   }
-  mLastIR = ir;
+}
+
+std::vector<char> Encoder::getBuffer(uint16_t feeId)
+{
+  /// Flushes data
+  size_t dataSize = mGBTEncoders[feeId].getBufferSize();
+  size_t cruWord = 2 * o2::raw::RDHUtils::GBTWord;
+  size_t modulo = dataSize % cruWord;
+  if (modulo) {
+    dataSize += cruWord - modulo;
+  }
+  std::vector<char> buf(dataSize);
+  memcpy(buf.data(), mGBTEncoders[feeId].getBuffer().data(), mGBTEncoders[feeId].getBufferSize());
+  mGBTEncoders[feeId].clear();
+  return buf;
 }
 
 void Encoder::flush(uint16_t feeId, const InteractionRecord& ir)
 {
   /// Flushes data
-
   if (mGBTEncoders[feeId].getBufferSize() == 0) {
     return;
   }
-  size_t dataSize = mGBTEncoders[feeId].getBufferSize();
-  size_t resto = dataSize % o2::raw::RDHUtils::GBTWord;
-  if (dataSize % o2::raw::RDHUtils::GBTWord) {
-    dataSize += o2::raw::RDHUtils::GBTWord - resto;
-  }
-  std::vector<char> buf(dataSize);
-  memcpy(buf.data(), mGBTEncoders[feeId].getBuffer().data(), mGBTEncoders[feeId].getBufferSize());
+  auto buf = getBuffer(feeId);
   mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), mFEEIdConfig.getLinkId(mGBTIds[feeId]), mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
-  mGBTEncoders[feeId].clear();
 }
 
 void Encoder::finalize(bool closeFile)
@@ -103,6 +118,7 @@ void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord&
   for (auto& item : mConverter.getData()) {
     mGBTEncoders[item.first].process(item.second, ir.bc);
   }
+  mLastIR = ir;
 }
 } // namespace mid
 } // namespace o2
