@@ -15,6 +15,7 @@ o2_add_library(
   SOURCES src/ClusterizerMCSpec.cxx
           src/ClusterizerSpec.cxx
           src/DecodedDataAggregatorSpec.cxx
+          src/DecodedDigitConverterSpec.cxx
           src/DigitReaderSpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
@@ -121,4 +122,10 @@ o2_add_executable(
   ul-checker-workflow
   COMPONENT_NAME mid
   SOURCES src/ul-checker-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+o2_add_executable(
+  decoded-digits-writer-workflow
+  COMPONENT_NAME mid
+  SOURCES src/decoded-digits-writer-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
