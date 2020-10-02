@@ -54,7 +54,7 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry)
     uint8_t deId = detparams::getDEId(isRightSide, ich, rpcLineId);
     auto& col = FindColumnData(deId, columnId, firstEntry);
     col.setBendPattern(loc.patternsBP[ich], lineId);
-    col.setNonBendPattern(loc.patternsNBP[ich]);
+    col.setNonBendPattern(col.getNonBendPattern() | loc.patternsNBP[ich]);
   }
 }
 
