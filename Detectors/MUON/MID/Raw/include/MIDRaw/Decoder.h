@@ -52,7 +52,12 @@ class Decoder
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    uint16_t feeId = mFEEIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh));
+    uint16_t feeId;
+    if constexpr (std::is_same_v<GBTDECODER, GBTUserLogicDecoder>) {
+      feeId = o2::raw::RDHUtils::getFEEID(rdh);
+    } else {
+      feeId = mFEEIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh));
+    }
     mGBTDecoders[feeId].process(payload, o2::raw::RDHUtils::getHeartBeatBC(rdh), o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getPageCounter(rdh));
   }
   /// Gets the vector of data
@@ -75,6 +80,14 @@ class Decoder
   CrateMasks mMasks{};                                        /// Crate masks
   ElectronicsDelay mElectronicsDelay{};                       /// Delay in the electronics
 };
+
+// template <>
+// template <typename RDH>
+// void Decoder<GBTUserLogicDecoder>::process(gsl::span<const uint8_t> payload, const RDH& rdh)
+// {
+//   uint16_t feeId = o2::raw::RDHUtils::getFEEID(rdh);
+//   mGBTDecoders[feeId].process(payload, o2::raw::RDHUtils::getHeartBeatBC(rdh), o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getPageCounter(rdh));
+// }
 
 } // namespace mid
 } // namespace o2
