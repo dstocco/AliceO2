@@ -71,10 +71,25 @@ std::unordered_map<uint64_t, std::vector<size_t>> getOrderedIndexes(const std::v
 std::unordered_map<uint16_t, std::vector<size_t>> getIndexesPerBoard(const std::vector<o2::mid::LocalBoardRO>& data, const std::vector<o2::mid::ROFRecord>& rofRecords, bool isLoc)
 {
   std::unordered_map<uint16_t, std::vector<size_t>> indexes;
+  // The UL rejects the events outside the SOX/EOX
+  // So we should do the same
+  std::unordered_map<uint16_t, bool> insideDataTaking;
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
     auto& loc = data[rofIt->firstEntry];
     if (isLoc == o2::mid::raw::isLoc(loc.statusWord)) {
-      indexes[loc.boardId].emplace_back(rofIt->firstEntry);
+      auto isInside = insideDataTaking.find(loc.boardId);
+      if (isInside == insideDataTaking.end()) {
+        insideDataTaking[loc.boardId] = false;
+        isInside = insideDataTaking.find(loc.boardId);
+      }
+      if (loc.triggerWord & o2::mid::raw::sSOX) {
+        isInside->second = true;
+      } else if (loc.triggerWord & o2::mid::raw::sEOX) {
+        isInside->second = false;
+      }
+      if (isInside->second) {
+        indexes[loc.boardId].emplace_back(rofIt->firstEntry);
+      }
     }
   }
   return indexes;
@@ -116,7 +131,8 @@ bool checkBoards(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::
   for (auto& bareItem : bareIndexes) {
     auto ulItem = ulIndexes.find(bareItem.first);
     if (ulItem == ulIndexes.end()) {
-      out << "\nCannot find " << printIRHex(bareRofs[bareItem.second.front()].interactionRecord) << " in ul";
+      out << "\nCrate: " << static_cast<int>(o2::mid::crateparams::getCrateId(bareItem.first))
+          << (isLoc ? "  Loc" : "  Reg") << " board: " << static_cast<int>(o2::mid::crateparams::getLocId(bareItem.first)) << "  cannot find " << printIRHex(bareRofs[bareItem.second.front()].interactionRecord) << " in ul" << std::endl;
       isOk = false;
       continue;
     }
@@ -125,7 +141,9 @@ bool checkBoards(const std::vector<o2::mid::LocalBoardRO>& bareData, const std::
     bool isCurrentOk = true;
     for (auto bareIt = bareItem.second.begin(); bareIt != bareItem.second.end(); ++bareIt) {
       if (ulIt == ulItem->second.end()) {
-        out << "\nNo more ul from: " << bareData[*bareIt] << std::endl;
+        out << "\nNo more ul from element " << bareIt - bareItem.second.begin() + 1 << " / " << bareItem.second.size() << ":" << std::endl;
+        out << "bare: " << printIRHex(bareRofs[*bareIt].interactionRecord) << std::endl;
+        out << bareData[*bareIt] << std::endl;
         isCurrentOk = false;
       } else if (!isSame(ulData[*ulIt], bareData[*bareIt]) || ulRofs[*ulIt].interactionRecord != bareRofs[*bareIt].interactionRecord) {
         out << "\nFirst divergence at element " << bareIt - bareItem.second.begin() + 1 << " / " << bareItem.second.size() << ":" << std::endl;
