@@ -64,7 +64,6 @@ bool GBTUserLogicEncoder::checkAndAdd(gsl::span<const LocalBoardRO> data, const 
   /// Checks the local boards and write the regional and local output if needed
   uint8_t activeBoards = 0;
   for (auto& loc : data) {
-    int regId = loc.boardId / 4;
     for (int ich = 0; ich < 4; ++ich) {
       if (loc.patternsBP[ich] && loc.patternsNBP[ich]) {
         activeBoards |= (1 << (loc.boardId % 8));
