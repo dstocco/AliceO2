@@ -101,8 +101,8 @@ class GBTRawDataChecker
   std::map<o2::InteractionRecord, std::vector<std::pair<uint8_t, size_t>>> mOrderedIndexesTrig{};     ///! Ordered indexes for triggered boards
   std::map<o2::InteractionRecord, std::vector<std::pair<uint8_t, size_t>>> mOrderedIndexesSelfTrig{}; ///! Ordered indexes for self-triggered boards
 
-  std::unordered_map<uint8_t, size_t> mLastIndexTrig{};     ///! Last checked index for triggered boards
-  std::unordered_map<uint8_t, size_t> mLastIndexSelfTrig{}; ///! Last checked index for self-triggered boards
+  std::unordered_map<uint8_t, long int> mLastIndexTrig{};     ///! Last checked index for triggered boards
+  std::unordered_map<uint8_t, long int> mLastIndexSelfTrig{}; ///! Last checked index for self-triggered boards
 
   o2::InteractionRecord mLastCompleteIRTrig{};     ///! Last complete IR for triggered boards
   o2::InteractionRecord mLastCompleteIRSelfTrig{}; ///! Last complete IR for self-triggered boards

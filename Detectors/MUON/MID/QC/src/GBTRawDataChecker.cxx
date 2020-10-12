@@ -272,15 +272,26 @@ bool GBTRawDataChecker::isCompleteSelfTrigEvent(const o2::InteractionRecord& ir)
   // compared to triggered events.
   // So, we expect information from a previous orbit after having received an orbit trigger.
   // Let us check that we have all boards with the same orbit
+
+  // for (auto& boardItem : mBoardsSelfTrig) { // TODO: REMOVE
+  //   for (auto boardIt = boardItem.second.begin(), end = boardItem.second.end(); boardIt != end; ++boardIt) {
+  //     if (boardIt->interactionRecord <= ir) {
+  //       return true;
+  //     }
+  //   }
+  // }
+
+  // return false;
+
   bool isIncluded = false;
   for (uint8_t ireg = 8; ireg < 10; ++ireg) {
     auto item = mBoardsSelfTrig.find(ireg);
     if (item != mBoardsSelfTrig.end()) {
+      if (item->second.back().interactionRecord.orbit == ir.orbit) {
+        return false;
+      }
       if (item->second.front().interactionRecord.orbit <= ir.orbit) {
         isIncluded = true;
-      }
-      if (item->second.back().interactionRecord.orbit <= ir.orbit) {
-        return false;
       }
     }
   }
@@ -325,6 +336,25 @@ unsigned int GBTRawDataChecker::getLastCompleteTrigEvent()
         }
         ++trIt;
       }
+
+      // ++trigEventIt; // TODO: REMOVE
+      // if (trigEventIt != end) {
+      //   completeMask = 0x1;
+      //   mLastCompleteIRTrig = trigEventIt->first;
+      //   if (isCompleteSelfTrigEvent(trigEventIt->first)) {
+      //     completeMask |= (1 << 1);
+      //     mLastCompleteIRSelfTrig = trigEventIt->first;
+      //   }
+      // }
+      // auto trIt = trigEventIt;
+      // while (trIt != end) {
+      //   if (isCompleteSelfTrigEvent(trIt->first)) {
+      //     completeMask |= (1 << 1);
+      //     mLastCompleteIRSelfTrig = trIt->first;
+      //     break;
+      //   }
+      //   ++trIt;
+      // }
       return completeMask;
     }
   }
@@ -342,7 +372,7 @@ void GBTRawDataChecker::sortEvents(bool isTriggered)
   orderedIndexes.clear();
   lastIndexes.clear();
   for (auto& boardItem : boards) {
-    size_t lastIdx = 0;
+    long int lastIdx = -1;
     for (auto boardIt = boardItem.second.begin(), end = boardItem.second.end(); boardIt != end; ++boardIt) {
       if (boardIt->interactionRecord > lastCompleteTrigEventIR) {
         break;
@@ -395,6 +425,15 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
       ++mStatistics[2];
     }
     ++mStatistics[0];
+    // std::cout << "\nChecking: " << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", evtIdxItem.first.bc, evtIdxItem.first.orbit) << std::endl; // TODO: REMOVE
+
+    // for (auto& loc : gbtEvent.regs) { // TODO: REMOVE
+    //   std::cout << loc << std::endl;  // TODO: REMOVE
+    // }                                 // TODO: REMOVE
+    // for (auto& loc : gbtEvent.locs) { // TODO: REMOVE
+    //   std::cout << loc << std::endl;  // TODO: REMOVE
+    // }                                 // TODO: REMOVE
+
     if (!checkEvent(isTriggered, gbtEvent.regs, gbtEvent.locs)) {
       std::stringstream ss;
       ss << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", evtIdxItem.first.bc, evtIdxItem.first.orbit);
@@ -404,6 +443,14 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
           ss << std::dec << "  page: " << page << "  (line: " << 512 * page + 1 << ")  ";
         }
         ss << "]";
+        // std::cout << "\nProblem found: " << std::endl; // TODO: REMOVE
+        // for (auto& item : boards) {                    // TODO: REMOVE
+        //   for (auto& board : item.second) {            // TODO: REMOVE
+
+        //     std::cout << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", board.interactionRecord.bc, board.interactionRecord.orbit) << "  " << board.board << std::endl; // TODO: REMOVE
+
+        //   } // TODO: REMOVE
+        // }   // TODO: REMOVE
       }
       ss << "\n";
       isOk = false;
@@ -423,6 +470,9 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
 
   // Fill board information
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
+    if (rofIt->interactionRecord.orbit == 0xffffffff) { // TODO: CHECK
+      continue;                                         // TODO: CHECK
+    }                                                   // TODO: CHECK
     for (auto locIt = localBoards.begin() + rofIt->firstEntry; locIt != localBoards.begin() + rofIt->firstEntry + rofIt->nEntries; ++locIt) {
       // Find what page this event corresponds to.
       // This is useful for debugging.
@@ -488,10 +538,23 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
 
   bool isOk = true;
 
+  // std::cout << "\nBefore check:" << std::endl;                // TODO: REMOVE
+  // for (int ib = 0; ib < 2; ++ib) {                            // TODO: REMOVE
+  //   auto& boards = (ib == 0) ? mBoardsTrig : mBoardsSelfTrig; // TODO: REMOVE
+  //   for (auto& item : boards) {                               // TODO: REMOVE
+  //     for (auto& board : item.second) {                       // TODO: REMOVE
+
+  //       std::cout << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", board.interactionRecord.bc, board.interactionRecord.orbit) << "  " << board.board << std::endl; // TODO: REMOVE
+
+  //     } // TODO: REMOVE
+  //   }   // TODO: REMOVE
+  // }     // TODO: REMOVE
+
   if (completeMask & 0x1) {
     sortEvents(true);
     isOk &= checkEvents(true);
     clearChecked(true, mBoardsSelfTrig.empty());
+    // clearChecked(true, true); // TODO: REMOVE
   }
 
   if (completeMask & 0x2) {
@@ -499,6 +562,18 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
     isOk &= checkEvents(false);
     clearChecked(false, true);
   }
+
+  // std::cout << "\nAfter check:" << std::endl;                 // TODO: REMOVE
+  // for (int ib = 0; ib < 2; ++ib) {                            // TODO: REMOVE
+  //   auto& boards = (ib == 0) ? mBoardsTrig : mBoardsSelfTrig; // TODO: REMOVE
+  //   for (auto& item : boards) {                               // TODO: REMOVE
+  //     for (auto& board : item.second) {                       // TODO: REMOVE
+
+  //       std::cout << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", board.interactionRecord.bc, board.interactionRecord.orbit) << "  " << board.board << std::endl; // TODO: REMOVE
+
+  //     } // TODO: REMOVE
+  //   }   // TODO: REMOVE
+  // }     // TODO: REMOVE
 
   return isOk;
 }
