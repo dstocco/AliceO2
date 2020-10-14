@@ -38,7 +38,7 @@ namespace mid
 class Encoder
 {
  public:
-  void init(const char* filename, bool perLink = false, int verbosity = 0);
+  void init(const char* filename, bool perLink = false, int verbosity = 0, bool debugMode = false);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
@@ -50,9 +50,11 @@ class Encoder
   void emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const;
 
  private:
-  std::vector<char> getBuffer(uint16_t feeId);
-  void flush(uint16_t feeId, const InteractionRecord& ir);
-  void hbTrigger(const InteractionRecord& ir);
+  std::vector<char> flushPayload(uint16_t feeId, const InteractionRecord& ir);
+  void writePayload(uint16_t feeId, const InteractionRecord& ir);
+  void onOrbitChange(uint32_t orbit);
+  // Returns the interaction record expected for the orbit trigger
+  inline InteractionRecord getOrbitIR(uint32_t orbit) const { return {o2::constants::lhc::LHCMaxBunches - 1, orbit}; }
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
 

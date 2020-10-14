@@ -25,7 +25,7 @@ namespace o2
 namespace mid
 {
 
-void Encoder::init(const char* filename, bool perLink, int verbosity)
+void Encoder::init(const char* filename, bool perLink, int verbosity, bool debugMode)
 {
   /// Initializes links
 
@@ -44,11 +44,14 @@ void Encoder::init(const char* filename, bool perLink, int verbosity)
     lcnt++;
 
     // Initializes the trigger response to be added to the empty HBs
-    mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
-    mOrbitResponse[feeId] = getBuffer(feeId);
+    auto ir = getOrbitIR(0);
+    mGBTEncoders[feeId].processTrigger(ir, raw::sORB);
+    mOrbitResponse[feeId] = flushPayload(feeId, ir);
   }
 
   mRawWriter.setEmptyPageCallBack(this);
+
+  mConverter.setDebugMode(debugMode);
 }
 
 void Encoder::emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const
@@ -58,50 +61,59 @@ void Encoder::emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& t
   toAdd = mOrbitResponse[feeId];
 }
 
-void Encoder::hbTrigger(const InteractionRecord& ir)
+void Encoder::onOrbitChange(uint32_t orbit)
 {
-  /// Processes HB trigger
-  if (ir.orbit != mLastIR.orbit) {
-    // There was an orbit change
-    for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
-      // Flush the data corresponding to the previous orbit
-      flush(feeId, mLastIR);
-      // Add the trigger response
-      mGBTEncoders[feeId].processTrigger(o2::constants::lhc::LHCMaxBunches, raw::sORB);
+  /// Performs action when orbit changes
+  auto ir = getOrbitIR(orbit > 0 ? orbit - 1 : orbit);
+  for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+    // Write the data corresponding to the previous orbit
+    if (!mGBTEncoders[feeId].isEmpty()) {
+      writePayload(feeId, mLastIR);
     }
+    mGBTEncoders[feeId].processTrigger(ir, raw::sORB);
   }
 }
 
-std::vector<char> Encoder::getBuffer(uint16_t feeId)
+std::vector<char> Encoder::flushPayload(uint16_t feeId, const InteractionRecord& ir)
 {
-  /// Flushes data
-  size_t dataSize = mGBTEncoders[feeId].getBufferSize();
+  /// Flushes data to buffer
+  std::vector<char> buf;
+  mGBTEncoders[feeId].flush(buf, ir);
+  size_t dataSize = buf.size();
   size_t cruWord = 2 * o2::raw::RDHUtils::GBTWord;
   size_t modulo = dataSize % cruWord;
   if (modulo) {
     dataSize += cruWord - modulo;
   }
-  std::vector<char> buf(dataSize);
-  memcpy(buf.data(), mGBTEncoders[feeId].getBuffer().data(), mGBTEncoders[feeId].getBufferSize());
-  mGBTEncoders[feeId].clear();
+  char fill{static_cast<char>(0)};
+  buf.resize(dataSize, fill);
   return buf;
 }
 
-void Encoder::flush(uint16_t feeId, const InteractionRecord& ir)
+void Encoder::writePayload(uint16_t feeId, const InteractionRecord& ir)
 {
-  /// Flushes data
-  if (mGBTEncoders[feeId].getBufferSize() == 0) {
-    return;
-  }
-  auto buf = getBuffer(feeId);
+  /// Writes data
+  auto buf = flushPayload(feeId, ir);
   mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), mFEEIdConfig.getLinkId(mGBTIds[feeId]), mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
 }
 
 void Encoder::finalize(bool closeFile)
 {
-  /// Finish the flushing and closes the
+  /// Writes remaining data and closes the file
   for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
-    flush(feeId, mLastIR);
+    // Write the last payload
+    writePayload(feeId, mLastIR);
+    if (!mGBTEncoders[feeId].isEmpty()) {
+      // Since the regional response comes after few clocks,
+      // we might have the corresponding regional cards in the next orbit.
+      // If this is the case, we add a response to an orbit trigger
+      auto ir = getOrbitIR(mLastIR.orbit);
+      mGBTEncoders[feeId].processTrigger(ir, raw::sORB);
+      // And then we add the regionals.
+      // Notice that we want to flush all data of the next orbit
+      ++ir.orbit;
+      writePayload(feeId, ir);
+    }
   }
   if (closeFile) {
     mRawWriter.close();
@@ -111,12 +123,14 @@ void Encoder::finalize(bool closeFile)
 void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
 {
   /// Encodes data
-  hbTrigger(ir);
+  if (ir.orbit != mLastIR.orbit) {
+    onOrbitChange(ir.orbit);
+  }
 
   mConverter.process(data);
 
   for (auto& item : mConverter.getData()) {
-    mGBTEncoders[item.first].process(item.second, ir.bc);
+    mGBTEncoders[item.first].process(item.second, ir);
   }
   mLastIR = ir;
 }

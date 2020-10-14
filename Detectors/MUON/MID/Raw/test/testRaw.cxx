@@ -146,6 +146,7 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
   std::vector<o2::mid::LocalBoardRO> outData;
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
+  converter.setDebugMode(true);
   for (auto& item : inData) {
     converter.process(item.second);
     auto firstEntry = outData.size();
@@ -200,16 +201,20 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   o2::mid::GBTUserLogicEncoder encoder;
   encoder.setFeeId(feeId);
   for (auto& item : inData) {
-    encoder.process(item.second, item.first);
+    encoder.process(item.second, o2::InteractionRecord(item.first, 0));
   }
+  std::vector<char> buf;
+  encoder.flush(buf, o2::InteractionRecord());
   o2::header::RAWDataHeader rdh;
-  auto memSize = encoder.getBufferSize() + 64;
+  auto memSize = buf.size() + 64;
   rdh.word1 |= (memSize | (memSize << 16));
   // Sets the feeId
   rdh.word0 |= ((5 * 2) << 16);
   o2::mid::GBTUserLogicDecoder decoder;
   decoder.init(feeId);
-  decoder.process(encoder.getBuffer(), rdh);
+  std::vector<uint8_t> convertedBuffer(buf.size());
+  memcpy(convertedBuffer.data(), buf.data(), buf.size());
+  decoder.process(convertedBuffer, rdh);
   BOOST_REQUIRE(decoder.getROFRecords().size() == inData.size());
   auto inItMap = inData.begin();
   for (auto rofIt = decoder.getROFRecords().begin(); rofIt != decoder.getROFRecords().end(); ++rofIt) {
@@ -247,9 +252,13 @@ BOOST_AUTO_TEST_CASE(SmallSample)
   inData[ir].emplace_back(getColData(5, 1, 0xFFFF, 0, 0xF, 0xF0));
   // Crate 10 link 1 and crate 11 link 1
   inData[ir].emplace_back(getColData(41, 2, 0xFF0F, 0, 0xF0FF, 0xF));
-  ir.bc = 200;
+  ir.bc = 0xde6;
   ir.orbit = 2;
   // Crate 12 link 1
+  inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
+
+  ir.bc = 0xdea;
+  ir.orbit = 3;
   inData[ir].emplace_back(getColData(70, 3, 0xFF00, 0xFF));
 
   auto [data, rofs] = encodeDecode(inData);
