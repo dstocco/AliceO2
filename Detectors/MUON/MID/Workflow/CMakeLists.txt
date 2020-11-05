@@ -23,6 +23,7 @@ o2_add_library(MIDWorkflow
                        src/RawWriterSpec.cxx
                        src/TrackerMCSpec.cxx
                        src/TrackerSpec.cxx
+                       src/UserLogicCheckerSpec.cxx
                        src/ZeroSuppressionSpec.cxx
                PUBLIC_LINK_LIBRARIES
                        O2::Framework
@@ -115,4 +116,15 @@ o2_add_executable(
 
 target_include_directories(
   ${exanamerawchecker}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  ul-checker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/ul-checker-workflow.cxx
+  TARGETVARNAME exanameulchecker
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exanameulchecker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
