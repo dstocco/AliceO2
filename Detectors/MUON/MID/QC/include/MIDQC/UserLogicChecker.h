@@ -19,8 +19,8 @@
 #include <string>
 #include <unordered_map>
 #include <gsl/gsl>
+#include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
 {
@@ -29,7 +29,7 @@ namespace mid
 class UserLogicChecker
 {
  public:
-  bool process(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs, bool isFull = false);
+  bool process(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs, bool isFull = false);
 
   /// Gets the debug message
   std::string getDebugMessage() const { return mDebugMsg; }
@@ -37,15 +37,15 @@ class UserLogicChecker
   void clear();
 
  private:
-  bool checkAll(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs);
-  bool checkBoards(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs);
+  bool checkAll(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs);
+  bool checkBoards(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs);
   void clearBoards();
-  void fillBoards(gsl::span<const LocalBoardRO> data, gsl::span<const ROFRecord> rofRecords, bool isUL);
-  uint32_t getId(const LocalBoardRO& board) const;
+  void fillBoards(gsl::span<const ROBoard> data, gsl::span<const ROFRecord> rofRecords, bool isUL);
+  uint32_t getId(const ROBoard& board) const;
 
   std::unordered_map<uint64_t, std::vector<size_t>> getOrderedIndexes(gsl::span<const ROFRecord> rofRecords) const;
 
-  bool isSame(const o2::mid::LocalBoardRO& loc1, const o2::mid::LocalBoardRO& loc2) const;
+  bool isSame(const o2::mid::ROBoard& loc1, const o2::mid::ROBoard& loc2) const;
   std::string printIRHex(const o2::InteractionRecord& ir) const;
 
   std::string mDebugMsg{}; /// Debug message
@@ -56,7 +56,7 @@ class UserLogicChecker
 
   struct boardInfo {
     InteractionRecord interactionRecord;
-    LocalBoardRO board;
+    ROBoard board;
   };
 
   std::unordered_map<uint32_t, std::vector<boardInfo>> mBoardsBare; //! Bare boards info

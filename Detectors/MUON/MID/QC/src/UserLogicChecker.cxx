@@ -17,14 +17,13 @@
 
 #include <sstream>
 #include <fmt/format.h>
-#include "MIDRaw/CrateParameters.h"
 
 namespace o2
 {
 namespace mid
 {
 
-bool UserLogicChecker::isSame(const o2::mid::LocalBoardRO& loc1, const o2::mid::LocalBoardRO& loc2) const
+bool UserLogicChecker::isSame(const o2::mid::ROBoard& loc1, const o2::mid::ROBoard& loc2) const
 {
   /// Tests if boards are sames
   if (loc1.statusWord == loc2.statusWord && loc1.triggerWord == loc2.triggerWord && loc1.firedChambers == loc2.firedChambers && loc1.boardId == loc2.boardId) {
@@ -44,7 +43,7 @@ std::string UserLogicChecker::printIRHex(const o2::InteractionRecord& ir) const
   return fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", ir.bc, ir.orbit);
 }
 
-uint32_t UserLogicChecker::getId(const LocalBoardRO& board) const
+uint32_t UserLogicChecker::getId(const ROBoard& board) const
 {
   /// Gets the unique ID for internal usage
   uint32_t id = static_cast<uint32_t>(board.boardId);
@@ -54,7 +53,7 @@ uint32_t UserLogicChecker::getId(const LocalBoardRO& board) const
   return id;
 }
 
-void UserLogicChecker::fillBoards(gsl::span<const LocalBoardRO> data, gsl::span<const ROFRecord> rofRecords, bool isUL)
+void UserLogicChecker::fillBoards(gsl::span<const ROBoard> data, gsl::span<const ROFRecord> rofRecords, bool isUL)
 {
   /// Fills the inner structure for checks
 
@@ -101,7 +100,7 @@ void UserLogicChecker::clearBoards()
   }
 }
 
-bool UserLogicChecker::checkBoards(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs)
+bool UserLogicChecker::checkBoards(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs)
 {
   /// Compares the UL output with the corresponding bare output per board
   clearBoards();
@@ -117,8 +116,8 @@ bool UserLogicChecker::checkBoards(gsl::span<const LocalBoardRO> bareData, gsl::
     std::stringstream ss;
     ss << "\n-----------" << std::endl;
     uint16_t boardId = (bareItem.first & 0xFFFF);
-    ss << "Checking crate: " << static_cast<int>(crateparams::getCrateId(boardId))
-       << "  " << boardType << " board: " << static_cast<int>(crateparams::getLocId(boardId)) << std::endl;
+    ss << "Checking crate: " << static_cast<int>(raw::getCrateId(boardId))
+       << "  " << boardType << " board: " << static_cast<int>(raw::getLocId(boardId)) << std::endl;
     auto ulItem = mBoardsUL.find(bareItem.first);
     if (ulItem == mBoardsUL.end()) {
       ss << "  cannot find " << printIRHex(bareItem.second.front().interactionRecord) << " in ul" << std::endl;
@@ -176,7 +175,7 @@ std::unordered_map<uint64_t, std::vector<size_t>> UserLogicChecker::getOrderedIn
   return orderIndexes;
 }
 
-bool UserLogicChecker::checkAll(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs)
+bool UserLogicChecker::checkAll(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs)
 {
   auto bareIndexes = getOrderedIndexes(bareRofs);
   auto ulIndexes = getOrderedIndexes(ulRofs);
@@ -227,7 +226,7 @@ bool UserLogicChecker::checkAll(gsl::span<const LocalBoardRO> bareData, gsl::spa
   return isOk;
 }
 
-bool UserLogicChecker::process(gsl::span<const LocalBoardRO> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const LocalBoardRO> ulData, gsl::span<const ROFRecord> ulRofs, bool isFull)
+bool UserLogicChecker::process(gsl::span<const ROBoard> bareData, gsl::span<const ROFRecord> bareRofs, gsl::span<const ROBoard> ulData, gsl::span<const ROFRecord> ulRofs, bool isFull)
 {
   /// Compares the UL output with the corresponding bare output
   mDebugMsg.clear();
@@ -249,7 +248,7 @@ std::string UserLogicChecker::getSummary() const
     std::string boardType = (statItem.first < 0x10000) ? "Loc" : "Reg";
     double badFraction = (statItem.second[0] == 0) ? 0. : static_cast<double>(statItem.second[1]) / static_cast<double>(statItem.second[0]);
     uint16_t boardId = (statItem.first & 0xFFFF);
-    ss << "Crate: " << static_cast<int>(crateparams::getCrateId(boardId)) << "  " << boardType << " board: " << static_cast<int>(crateparams::getLocId(boardId)) << "  fraction of events not in sync: " << statItem.second[1] << " / " << statItem.second[0] << " = " << badFraction << std::endl;
+    ss << "Crate: " << static_cast<int>(raw::getCrateId(boardId)) << "  " << boardType << " board: " << static_cast<int>(raw::getLocId(boardId)) << "  fraction of events not in sync: " << statItem.second[1] << " / " << statItem.second[0] << " = " << badFraction << std::endl;
   }
   return ss.str();
 }
