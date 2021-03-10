@@ -344,16 +344,16 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   bool newTF = false, newHB = false;
   const auto& HBU = HBFUtils::Instance();
 
-  if (RDHUtils::getFEEID(rdh) != RDHUtils::getFEEID(rdhl)) { // make sure links with different FEEID were not assigned same subspec
-    LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
-    LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
-    RDHUtils::dumpRDH(rdhl);
-    LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
-    RDHUtils::dumpRDH(rdh);
-    throw std::runtime_error("Conflicting SubSpecs are provided");
-    ok = false;
-    nErrors++;
-  }
+  // if (RDHUtils::getFEEID(rdh) != RDHUtils::getFEEID(rdhl)) { // make sure links with different FEEID were not assigned same subspec
+  //   LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
+  //   LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
+  //   RDHUtils::dumpRDH(rdhl);
+  //   LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
+  //   RDHUtils::dumpRDH(rdh);
+  //   throw std::runtime_error("Conflicting SubSpecs are provided");
+  //   ok = false;
+  //   nErrors++;
+  // }
   auto ir = RDHUtils::getTriggerIR(rdh);
   auto pageCnt = RDHUtils::getPageCounter(rdh);
 

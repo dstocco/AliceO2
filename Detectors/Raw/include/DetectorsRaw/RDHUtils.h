@@ -659,10 +659,10 @@ struct RDHUtils {
     if (srcid != o2::header::DAQID::INVALID) {
       return feeId;
     }
-    //else { // this may lead to ambiguities
-    //  int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
-    //  return (LinkSubSpec_t(cru) << 16) | linkValue;
-    //}
+    else { // this may lead to ambiguities
+     int linkValue = (LinkSubSpec_t(link) + 1) << (endpoint == 1 ? 8 : 0);
+     return (LinkSubSpec_t(cru) << 16) | linkValue;
+    }
     //
     // RS At the moment suppress getting the subspec as a hash
     uint16_t seq[3] = {cru, uint16_t((uint16_t(link) << 8) | endpoint), feeId};
