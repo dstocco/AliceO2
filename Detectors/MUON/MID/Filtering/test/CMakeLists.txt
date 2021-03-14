@@ -8,14 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Clustering)
-add_subdirectory(Conditions)
-add_subdirectory(CTF)
-add_subdirectory(Filtering)
-add_subdirectory(QC)
-add_subdirectory(Raw)
-add_subdirectory(Simulation)
-add_subdirectory(TestingSimTools)
-add_subdirectory(Tracking)
-add_subdirectory(Workflow)
+o2_add_test(
+  Filtering
+  SOURCES testFilter.cxx
+  LABELS mid
+  COMPONENT_NAME mid
+  PUBLIC_LINK_LIBRARIES O2::MIDFiltering O2::MIDBase)
+
+# if(benchmark_FOUND) o2_add_executable( tracker COMPONENT_NAME mid SOURCES
+# bench_Tracker.cxx IS_BENCHMARK PUBLIC_LINK_LIBRARIES O2::MIDTracking
+# benchmark::benchmark) endif()
