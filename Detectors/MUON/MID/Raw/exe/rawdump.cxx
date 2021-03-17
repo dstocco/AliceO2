@@ -19,6 +19,7 @@
 #include "DPLUtils/RawParser.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/RawFileReader.h"
+#include "MIDRaw/Utils.h"
 
 namespace po = boost::program_options;
 
@@ -135,7 +136,7 @@ int main(int argc, char* argv[])
             }
             decode(*decoder, payload, *rdhPtr, out);
           } else if (!isRdhOnly) {
-            bool isBare = (o2::raw::RDHUtils::getLinkID(rdhPtr) != o2::mid::raw::sUserLogicLinkID);
+            bool isBare = o2::mid::raw::isBare(*rdhPtr);
             size_t wordLength = isBare ? 16 : 32;
             for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
               auto word = payload.subspan(iword, wordLength);

@@ -60,11 +60,6 @@ class FEEIdConfig
   std::unordered_map<uint16_t, uint16_t> mGBTUniqueIdToFeeId{};              /// Correspondence between GBT unique ID and FEE ID
   std::unordered_map<uint16_t, std::vector<uint16_t>> mGBTUniqueIdsInLink{}; /// Input GBT links in output link
 };
-namespace raw
-{
-static constexpr uint8_t sUserLogicLinkID = 15;
-}
-
 } // namespace mid
 } // namespace o2
 

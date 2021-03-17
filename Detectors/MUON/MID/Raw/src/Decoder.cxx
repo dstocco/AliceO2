@@ -17,6 +17,7 @@
 
 #include "Headers/RDHAny.h"
 #include "DPLUtils/RawParser.h"
+#include "MIDRaw/Utils.h"
 
 namespace o2
 {
@@ -72,7 +73,7 @@ void Decoder::process(gsl::span<const uint8_t> bytes)
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
 {
   /// Creates the decoder from the RDH info
-  bool isBare = (o2::raw::RDHUtils::getLinkID(rdh) != raw::sUserLogicLinkID);
+  bool isBare = raw::isBare(rdh);
   return std::make_unique<Decoder>(isDebugMode, isBare, electronicsDelay, crateMasks, feeIdConfig);
 }
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile, const char* crateMasksFile, const char* feeIdConfigFile)
