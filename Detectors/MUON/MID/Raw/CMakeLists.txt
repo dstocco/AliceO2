@@ -21,9 +21,9 @@ o2_add_library(
           src/ELinkManager.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
-          src/GBTDecoder.cxx
           src/GBTOutputHandler.cxx
           src/GBTUserLogicEncoder.cxx
+          src/LinkDecoder.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES
     ms_gsl::ms_gsl

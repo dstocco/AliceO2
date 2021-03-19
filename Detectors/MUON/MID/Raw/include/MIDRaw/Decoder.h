@@ -24,7 +24,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "MIDRaw/GBTDecoder.h"
+#include "MIDRaw/LinkDecoder.h"
 #include "DataFormatsMID/ROBoard.h"
 
 namespace o2
@@ -43,7 +43,7 @@ class Decoder
   {
     /// Processes the page
     auto feeId = mgetGBTUniqueId(rdh);
-    mGBTDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+    mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
   }
   /// Gets the vector of data
   const std::vector<ROBoard>& getData() const { return mData; }
@@ -57,7 +57,7 @@ class Decoder
   /// Gets the feeID
   std::function<uint16_t(const o2::header::RDHAny& rdh)> mgetGBTUniqueId{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
 
-  std::vector<std::unique_ptr<GBTDecoder>> mGBTDecoders{}; /// GBT decoders
+  std::vector<std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
 
  private:
   std::vector<ROBoard> mData{};         /// Vector of output data

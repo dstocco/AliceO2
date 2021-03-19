@@ -37,13 +37,13 @@ class FEEIDGetterImpl
 };
 // } // namespace impl
 
-Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mGBTDecoders()
+Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mLinkDecoders()
 {
   /// Constructor
   uint16_t nFeeIds = isBare ? crateparams::sNGBTs : 4;
   // nFeeIds = crateparams::sNGBTs; // TODO: REMOVE when UL updated
   for (uint16_t igbt = 0; igbt < nFeeIds; ++igbt) {
-    mGBTDecoders.emplace_back(createGBTDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay));
+    mLinkDecoders.emplace_back(createLinkDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay));
   }
   if (isBare) {
     mgetGBTUniqueId = FEEIDGetterImpl(feeIdConfig);
