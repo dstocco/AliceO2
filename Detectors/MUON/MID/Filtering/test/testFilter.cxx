@@ -28,6 +28,8 @@
 #include "MIDFiltering/ChannelScalers.h"
 #include "MIDFiltering/MaskMaker.h"
 
+#include "MIDBase/Mapping.h" // TODO: REMOVE
+
 namespace o2
 {
 namespace mid
@@ -130,5 +132,35 @@ BOOST_AUTO_TEST_CASE(maskMaker)
     }
   }
 }
+
+BOOST_AUTO_TEST_CASE(defaultMask)
+{
+  /// Builds the default channel mask
+  Mapping mapping;
+  ChannelMasks chMasks;
+  for (int ide = 0; ide < 72; ++ide) {
+    for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
+      ColumnData mask;
+      mask.deId = static_cast<uint8_t>(ide);
+      mask.columnId = static_cast<uint8_t>(icol);
+      for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {
+        mask.setBendPattern(0xFFFF, iline);
+      }
+      for (int istrip = 0; istrip < mapping.getNStripsNBP(icol, ide); ++istrip) {
+        mask.addStrip(istrip, 1, 0);
+      }
+      chMasks.setFromChannelMask(mask);
+    }
+  }
+  auto masks = chMasks.getMasks();
+  std::sort(masks.begin(), masks.end(), [](const ColumnData& first, const ColumnData& second) { if (first.deId == second.deId) {return first.columnId<second.columnId; } return first.deId < second.deId; });
+  for (auto& mask : masks) {
+    if (mask.deId == 9) {
+      break;
+    }
+    printf("Line: %i  col: %i  NBP: 0x%04X\n", (mask.deId % 9) + 1, mask.columnId + 1, mask.getNonBendPattern());
+  }
+}
+
 } // namespace mid
 } // namespace o2
