@@ -30,7 +30,7 @@ class FEEIDGetterImpl
 {
  public:
   FEEIDGetterImpl(const FEEIdConfig& feeIdConfig) : mFeeIdConfig(feeIdConfig) {}
-  uint16_t operator()(const o2::header::RDHAny& rdh) { return mFeeIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh)); }
+  uint16_t operator()(const o2::header::RDHAny& rdh) { return mFeeIdConfig.getGBTUniqueId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh)); }
 
  private:
   FEEIdConfig mFeeIdConfig{};
@@ -40,11 +40,13 @@ class FEEIDGetterImpl
 Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mGBTDecoders()
 {
   /// Constructor
-  for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
-    mGBTDecoders[igbt] = createGBTDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay);
+  uint16_t nFeeIds = isBare ? crateparams::sNGBTs : 4;
+  // nFeeIds = crateparams::sNGBTs; // TODO: REMOVE when UL updated
+  for (uint16_t igbt = 0; igbt < nFeeIds; ++igbt) {
+    mGBTDecoders.emplace_back(createGBTDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay));
   }
   if (isBare) {
-    mGetFEEID = FEEIDGetterImpl(feeIdConfig);
+    mgetGBTUniqueId = FEEIDGetterImpl(feeIdConfig);
   }
 }
 

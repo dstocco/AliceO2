@@ -17,7 +17,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <array>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -43,7 +42,7 @@ class Decoder
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    auto feeId = mGetFEEID(rdh);
+    auto feeId = mgetGBTUniqueId(rdh);
     mGBTDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
   }
   /// Gets the vector of data
@@ -56,9 +55,9 @@ class Decoder
 
  protected:
   /// Gets the feeID
-  std::function<uint16_t(const o2::header::RDHAny& rdh)> mGetFEEID{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
+  std::function<uint16_t(const o2::header::RDHAny& rdh)> mgetGBTUniqueId{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
 
-  std::array<std::unique_ptr<GBTDecoder>, crateparams::sNGBTs> mGBTDecoders{nullptr}; /// GBT decoders
+  std::vector<std::unique_ptr<GBTDecoder>> mGBTDecoders{}; /// GBT decoders
 
  private:
   std::vector<ROBoard> mData{};         /// Vector of output data
