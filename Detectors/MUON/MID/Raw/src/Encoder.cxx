@@ -18,6 +18,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/Utils.h"
 #include <fmt/format.h>
 
 namespace o2
@@ -36,7 +37,7 @@ void Encoder::init(const char* filename, bool perLink, int verbosity, bool debug
   int lcnt = 0;
   for (auto& gbtId : gbtIds) {
     auto feeId = mFEEIdConfig.getFeeId(gbtId);
-    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), raw::sUserLogicLinkID, mFEEIdConfig.getEndPointId(gbtId), perLink ? fmt::format("{:s}_L{:d}.raw", filename, lcnt) : fmt::format("{:s}.raw", filename));
+    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), mFEEIdConfig.getLinkId(gbtId), mFEEIdConfig.getEndPointId(gbtId), perLink ? fmt::format("{:s}_L{:d}.raw", filename, lcnt) : fmt::format("{:s}.raw", filename));
     mGBTEncoders[feeId].setFeeId(feeId);
     mGBTEncoders[feeId].setMask(masks.getMask(feeId));
     mGBTIds[feeId] = gbtId;
@@ -95,7 +96,7 @@ void Encoder::writePayload(uint16_t feeId, const InteractionRecord& ir)
   // Then we flush the received data
   mGBTEncoders[feeId].flush(buf, ir);
   completeWord(buf);
-  mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), raw::sUserLogicLinkID, mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
+  mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), mFEEIdConfig.getLinkId(mGBTIds[feeId]), mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
 }
 
 void Encoder::finalize(bool closeFile)
