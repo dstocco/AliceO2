@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   uint8_t linkInCrate = 0;
   uint16_t feeId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
-  encoder.setFeeId(feeId);
+  encoder.setGBTUniqueId(feeId);
   for (auto& item : inData) {
     encoder.process(item.second, o2::InteractionRecord(item.first, 0));
   }
@@ -204,9 +204,10 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   o2::header::RAWDataHeader rdh;
   auto memSize = buf.size() + 64;
   rdh.word1 |= (memSize | (memSize << 16));
-  // Sets the feeId
-  rdh.word0 |= ((5 * 2) << 16);
-  auto decoder = o2::mid::createGBTDecoder(feeId);
+  // Sets the linkId
+  uint16_t linkId = feeId / 8;
+  rdh.word0 |= (linkId << 16);
+  auto decoder = o2::mid::createGBTDecoder(linkId);
   std::vector<o2::mid::ROBoard> data;
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<uint8_t> convertedBuffer(buf.size());
