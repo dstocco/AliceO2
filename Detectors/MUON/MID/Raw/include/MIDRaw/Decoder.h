@@ -25,6 +25,7 @@
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/LinkDecoder.h"
+#include "MIDRaw/Utils.h"
 #include "DataFormatsMID/ROBoard.h"
 
 namespace o2
@@ -42,7 +43,7 @@ class Decoder
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    auto feeId = mgetGBTUniqueId(rdh);
+    auto feeId = raw::getFEEId(rdh);
     mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
   }
   /// Gets the vector of data
@@ -54,9 +55,6 @@ class Decoder
   void clear();
 
  protected:
-  /// Gets the feeID
-  std::function<uint16_t(const o2::header::RDHAny& rdh)> mgetGBTUniqueId{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
-
   std::vector<std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
 
  private:
@@ -64,7 +62,7 @@ class Decoder
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
 };
 
-std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig);
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig);
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile = "", const char* crateMasksFile = "", const char* feeIdConfigFile = "");
 
 } // namespace mid

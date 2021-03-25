@@ -17,36 +17,20 @@
 
 #include "Headers/RDHAny.h"
 #include "DPLUtils/RawParser.h"
-#include "MIDRaw/Utils.h"
 
 namespace o2
 {
 namespace mid
 {
 
-// namespace impl
-// {
-class FEEIDGetterImpl
-{
- public:
-  FEEIDGetterImpl(const FEEIdConfig& feeIdConfig) : mFeeIdConfig(feeIdConfig) {}
-  uint16_t operator()(const o2::header::RDHAny& rdh) { return mFeeIdConfig.getGBTUniqueId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh)); }
-
- private:
-  FEEIdConfig mFeeIdConfig{};
-};
-// } // namespace impl
-
 Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mLinkDecoders()
 {
   /// Constructor
-  uint16_t nFeeIds = isBare ? crateparams::sNGBTs : 4;
-  // nFeeIds = crateparams::sNGBTs; // TODO: REMOVE when UL updated
-  for (uint16_t igbt = 0; igbt < nFeeIds; ++igbt) {
-    mLinkDecoders.emplace_back(createLinkDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay));
-  }
-  if (isBare) {
-    mgetGBTUniqueId = FEEIDGetterImpl(feeIdConfig);
+  auto feeIds = isBare ? feeIdConfig.getConfiguredGBTUniqueIDs() : feeIdConfig.getConfiguredFEEIDs();
+  feeIds = feeIdConfig.getConfiguredGBTUniqueIDs(); // TODO: REMEMBER TO CUT
+
+  for (auto& feeId : feeIds) {
+    mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay));
   }
 }
 
@@ -72,7 +56,7 @@ void Decoder::process(gsl::span<const uint8_t> bytes)
   }
 }
 
-std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
 {
   /// Creates the decoder from the RDH info
   bool isBare = raw::isBare(rdh);
