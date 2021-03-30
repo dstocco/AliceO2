@@ -28,38 +28,39 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
   for (auto& gbtUniqueId : gbtUniqueIds) {
     auto crateId = crateparams::getCrateIdFromGBTUniqueId(gbtUniqueId);
     uint8_t offset = crateparams::getGBTIdInCrate(gbtUniqueId) * 8;
+    printf("isBare: %i  gbtUniqueId: %i  crateId: %i  offset: %i\n", isBare, gbtUniqueId, crateId, offset); // TODO: REMOVE
     for (int ilink = 0; ilink < 10; ++ilink) {
       bool isLoc = ilink < 8;
       auto uniqueId = raw::makeUniqueLocID(crateId, ilink % 8 + offset);
       ELinkDataShaper shaper(isDebugMode, isLoc, uniqueId);
       shaper.setElectronicsDelay(electronicsDelay);
-      mDataShapers.emplace_back(shaper);
-      // auto uniqueRegLocId = makeUniqueId(isLoc, uniqueId);
-      // mDataShapers.emplace(uniqueRegLocId, shaper);
+      // mDataShapers.emplace_back(shaper);
+      auto uniqueRegLocId = makeUniqueId(isLoc, uniqueId);
+      mDataShapers.emplace(uniqueRegLocId, shaper);
 
       if (isBare) {
         ELinkDecoder decoder;
         decoder.setBareDecoder(true);
-        mDecoders.emplace_back(decoder);
-        // mDecoders.emplace(uniqueRegLocId, decoder);
+        // mDecoders.emplace_back(decoder);
+        mDecoders.emplace(uniqueRegLocId, decoder);
       }
     }
   }
 
-  if (isBare) {
-    mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
-  } else {
-    mIndex = [](uint8_t crateId, uint8_t locId, bool isLoc) { return 10 * (2 * (crateId % 4) + (locId / 8)) + 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
-    // mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); }; // TODO: CHANGE when we will have the new UL
-  }
+  // if (isBare) {
+  //   mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
+  // } else {
+  //   mIndex = [](uint8_t crateId, uint8_t locId, bool isLoc) { return 10 * (2 * (crateId % 4) + (locId / 8)) + 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
+  //   // mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); }; // TODO: CHANGE when we will have the new UL
+  // }
 }
 
 void ELinkManager::set(uint32_t orbit)
 {
   /// Setup the orbit
   for (auto& shaper : mDataShapers) {
-    shaper.set(orbit);
-    // shaper.second.set(orbit);
+    // shaper.set(orbit);
+    shaper.second.set(orbit);
   }
 }
 

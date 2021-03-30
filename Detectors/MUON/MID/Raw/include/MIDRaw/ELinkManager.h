@@ -42,34 +42,47 @@ class ELinkManager
 
   // Use vectors
 
-  /// Returns the decoder
-  inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders[mIndex(raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), isLoc)]; }
-
-  /// Main function to be executed when decoding is done
-  inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
-  {
-    return mDataShapers[mIndex(crateId, locId, raw::isLoc(decoder.getStatusWord()))].onDone(decoder, data, rofs);
-  }
-
-  // Use unordered maps
-
-  /// Returns the decoder
-  // inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders.find(makeUniqueId(isLoc, boardUniqueId))->second; }
+  // /// Returns the decoder
+  // inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders[mIndex(raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), isLoc)]; }
 
   // /// Main function to be executed when decoding is done
   // inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   // {
-  //   return mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)))->second.onDone(decoder, data, rofs);
+  //   return mDataShapers[mIndex(crateId, locId, raw::isLoc(decoder.getStatusWord()))].onDone(decoder, data, rofs);
   // }
 
+  // Use unordered maps
+
+  /// Returns the decoder
+  inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders.find(makeUniqueId(isLoc, boardUniqueId))->second; }
+
+  /// Main function to be executed when decoding is done
+  inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+  {
+    auto uId = makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)); // TODO: REMOVE
+
+    if (mDataShapers.find(uId) == mDataShapers.end()) { // TODO: REMOVE
+
+      printf("0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", decoder.getStatusWord(), decoder.getTriggerWord(), decoder.getCounter(), decoder.getId(), decoder.getInputs(), decoder.getCrateId());
+      printf("isLoc: %i  crateId: %i  locId %i => %i\n", raw::isLoc(decoder.getStatusWord()), crateId, locId, uId); // TODO: REMOVE
+      for (auto& shaperIt : mDataShapers) {
+        printf("avail: %i\n", shaperIt.first); // TODO: REMOVE
+      }                                        // TODO: REMOVE
+    }                                          // TODO: REMOVE
+    return mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)))->second.onDone(decoder, data, rofs);
+  }
+
  private:
+  // Use unordered maps
   /// Makes a ID which is unique for local and regional board
-  // inline uint16_t makeUniqueId(bool isLoc, uint8_t uniqueId) { return (isLoc ? 0 : (1 << 8)) | uniqueId; }
-  // std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Vector with data shapers
-  // std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Vector with decoderss
-  std::function<size_t(uint8_t, uint8_t, bool)> mIndex{}; ///! Function that returns the index in the vector
-  std::vector<ELinkDataShaper> mDataShapers;              /// Vector with data shapers
-  std::vector<ELinkDecoder> mDecoders;                    /// Vector with decoders
+  inline uint16_t makeUniqueId(bool isLoc, uint8_t uniqueId) { return (isLoc ? 0 : (1 << 8)) | uniqueId; }
+  std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Vector with data shapers
+  std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Vector with decoders
+
+  // Use vectors
+  // std::function<size_t(uint8_t, uint8_t, bool)> mIndex{};     ///! Function that returns the index in the vector
+  // std::vector<ELinkDataShaper> mDataShapers; /// Vector with data shapers
+  // std::vector<ELinkDecoder> mDecoders;       /// Vector with decoders
 };
 } // namespace mid
 } // namespace o2
