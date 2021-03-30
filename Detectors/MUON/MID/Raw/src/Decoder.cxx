@@ -27,10 +27,12 @@ Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electron
 {
   /// Constructor
   auto feeIds = isBare ? feeIdConfig.getConfiguredGBTUniqueIDs() : feeIdConfig.getConfiguredFEEIDs();
-  feeIds = feeIdConfig.getConfiguredGBTUniqueIDs(); // TODO: REMEMBER TO CUT
+  // feeIds = feeIdConfig.getConfiguredGBTUniqueIDs(); // TODO: REMEMBER TO CUT
 
   for (auto& feeId : feeIds) {
-    mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay));
+    // mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+    printf("Emplace %i\n", feeId); // TODO: REMOVE
+    mLinkDecoders.emplace(feeId, createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
   }
 }
 
