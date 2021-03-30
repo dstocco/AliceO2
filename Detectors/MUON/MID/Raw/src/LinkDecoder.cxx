@@ -548,7 +548,7 @@ std::unique_ptr<LinkDecoder> createLinkDecoder(uint16_t feeId, bool isBare, bool
   if (isBare) {
     return std::make_unique<LinkDecoder>(impl::GBTBareDecoderImplV1(feeId, isDebugMode, mask, electronicsDelay));
   }
-  return std::make_unique<LinkDecoder>(impl::GBTUserLogicDecoderImplV1(feeId, isDebugMode, electronicsDelay)); // TODO: REMOVE
+  // return std::make_unique<LinkDecoder>(impl::GBTUserLogicDecoderImplV1(feeId, isDebugMode, electronicsDelay)); // TODO: REMOVE
   return std::make_unique<LinkDecoder>(impl::GBTUserLogicDecoderImplV2(feeId, isDebugMode, electronicsDelay, feeIdConfig));
 }
 
