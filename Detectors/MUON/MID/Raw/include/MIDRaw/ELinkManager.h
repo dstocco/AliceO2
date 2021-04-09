@@ -61,14 +61,14 @@ class ELinkManager
   {
     auto uId = makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)); // TODO: REMOVE
 
-    if (mDataShapers.find(uId) == mDataShapers.end()) { // TODO: REMOVE
+    // if (mDataShapers.find(uId) == mDataShapers.end()) { // TODO: REMOVE
 
-      printf("0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", decoder.getStatusWord(), decoder.getTriggerWord(), decoder.getCounter(), decoder.getId(), decoder.getInputs(), decoder.getCrateId());
-      printf("isLoc: %i  crateId: %i  locId %i => %i\n", raw::isLoc(decoder.getStatusWord()), crateId, locId, uId); // TODO: REMOVE
-      for (auto& shaperIt : mDataShapers) {
-        printf("avail: %i\n", shaperIt.first); // TODO: REMOVE
-      }                                        // TODO: REMOVE
-    }                                          // TODO: REMOVE
+    //   printf("0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", decoder.getStatusWord(), decoder.getTriggerWord(), decoder.getCounter(), decoder.getId(), decoder.getInputs(), decoder.getCrateId());
+    //   printf("isLoc: %i  crateId: %i  locId %i => %i\n", raw::isLoc(decoder.getStatusWord()), crateId, locId, uId); // TODO: REMOVE
+    //   for (auto& shaperIt : mDataShapers) {
+    //     printf("avail: %i\n", shaperIt.first); // TODO: REMOVE
+    //   }                                        // TODO: REMOVE
+    // }                                          // TODO: REMOVE
     return mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)))->second.onDone(decoder, data, rofs);
   }
 

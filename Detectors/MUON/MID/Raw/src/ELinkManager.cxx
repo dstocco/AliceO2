@@ -28,7 +28,7 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
   for (auto& gbtUniqueId : gbtUniqueIds) {
     auto crateId = crateparams::getCrateIdFromGBTUniqueId(gbtUniqueId);
     uint8_t offset = crateparams::getGBTIdInCrate(gbtUniqueId) * 8;
-    printf("isBare: %i  gbtUniqueId: %i  crateId: %i  offset: %i\n", isBare, gbtUniqueId, crateId, offset); // TODO: REMOVE
+    // printf("isBare: %i  gbtUniqueId: %i  crateId: %i  offset: %i\n", isBare, gbtUniqueId, crateId, offset); // TODO: REMOVE
     for (int ilink = 0; ilink < 10; ++ilink) {
       bool isLoc = ilink < 8;
       auto uniqueId = raw::makeUniqueLocID(crateId, ilink % 8 + offset);
