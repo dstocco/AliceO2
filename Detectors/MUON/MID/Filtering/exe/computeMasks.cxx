@@ -113,9 +113,9 @@ int main(int argc, char* argv[])
   }
 
   o2::mid::DecodedDataAggregator aggregator;
-  aggregator.process(data, rofRecords, o2::mid::EventType::Noise);
+  aggregator.process(data, rofRecords);
   o2::mid::ChannelScalers scalers;
-  for (auto& noisy : aggregator.getData()) {
+  for (auto& noisy : aggregator.getData(o2::mid::EventType::Noise)) {
     scalers.count(noisy);
   }
 
