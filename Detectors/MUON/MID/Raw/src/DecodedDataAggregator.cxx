@@ -16,7 +16,6 @@
 #include "MIDRaw/DecodedDataAggregator.h"
 
 #include "MIDBase/DetectorParameters.h"
-
 #include "MIDRaw/CrateParameters.h"
 
 namespace o2
@@ -58,7 +57,7 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry)
   }
 }
 
-void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, EventType eventType)
+void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords)
 {
   /// Aggregates the decoded raw data
 
@@ -68,26 +67,48 @@ void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::s
 
   // Fill the map with ordered events
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
-    if (rofIt->eventType == eventType) {
-      mOrderIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofRecords.begin());
-    }
+    mEventIndexes[static_cast<int>(rofIt->eventType)][rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofRecords.begin());
   }
 
   const ROFRecord* rof = nullptr;
-  for (auto& item : mOrderIndexes) {
-    size_t firstEntry = mData.size();
-    for (auto& idx : item.second) {
-      // In principle all of these ROF records have the same timestamp
-      rof = &rofRecords[idx];
-      for (size_t iloc = rof->firstEntry; iloc < rof->firstEntry + rof->nEntries; ++iloc) {
-        addData(localBoards[iloc], firstEntry);
+  for (size_t ievtType = 0; ievtType < mEventIndexes.size(); ++ievtType) {
+    mEventTypeStart[ievtType] = mROFRecords.size();
+    for (auto& item : mEventIndexes[ievtType]) {
+      size_t firstEntry = mData.size();
+      for (auto& idx : item.second) {
+        // In principle all of these ROF records have the same timestamp
+        rof = &rofRecords[idx];
+        for (size_t iloc = rof->firstEntry; iloc < rof->firstEntry + rof->nEntries; ++iloc) {
+          addData(localBoards[iloc], firstEntry);
+        }
       }
+      mROFRecords.emplace_back(rof->interactionRecord, rof->eventType, firstEntry, mData.size() - firstEntry);
     }
-    mROFRecords.emplace_back(rof->interactionRecord, rof->eventType, firstEntry, mData.size() - firstEntry);
-  }
+    // Clear the inner objects when the computation is done
+    mEventIndexes[ievtType].clear();
+  } // loop on event types
+}
 
-  // Clear the inner objects when the computation is done
-  mOrderIndexes.clear();
+std::vector<ColumnData> DecodedDataAggregator::getData(EventType eventType)
+{
+  /// Returns the data for eventType
+  int idx = static_cast<int>(eventType);
+  auto rofs = getROFRecords(eventType);
+  if (rofs.empty()) {
+    return std::vector<ColumnData>();
+  }
+  auto first = mData.begin() + rofs.front().firstEntry;
+  auto last = mData.begin() + rofs.back().firstEntry + rofs.back().nEntries;
+  return std::vector<ColumnData>(first, last);
+}
+
+std::vector<ROFRecord> DecodedDataAggregator::getROFRecords(EventType eventType)
+{
+  /// Returns the ROFRecords for eventType
+  int idx = static_cast<int>(eventType);
+  auto first = mROFRecords.begin() + mEventTypeStart[idx];
+  auto last = (idx == mEventTypeStart.size() - 1) ? mROFRecords.end() : mROFRecords.begin() + mEventTypeStart[idx + 1];
+  return std::vector<ROFRecord>(first, last);
 }
 
 } // namespace mid
