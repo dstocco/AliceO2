@@ -27,11 +27,10 @@ namespace raw
 static constexpr uint8_t sUserLogicLinkID = 15; // Link ID for the user logic
 
 /// Test if the data comes from the common logic
-// inline bool isBare(const o2::header::RDHAny& rdh) { return (o2::raw::RDHUtils::getFEEID(rdh) >> 7) == 1; }
-inline bool isBare(const o2::header::RDHAny& rdh) { return (o2::raw::RDHUtils::getLinkID(rdh) != sUserLogicLinkID); }
+// inline bool isBare(const o2::header::RDHAny& rdh) { return (o2::raw::RDHUtils::getLinkID(rdh) != sUserLogicLinkID); }
+inline bool isBare(const o2::header::RDHAny& rdh) { return (o2::raw::RDHUtils::getFEEID(rdh) >> 7) == 1; } // TODO: CHANGE
 
 inline uint16_t getFEEId(const o2::header::RDHAny& rdh) { return (o2::raw::RDHUtils::getFEEID(rdh) & 0x1F); }
-// inline uint16_t getFEEId(const o2::header::RDHAny& rdh) { return isBare(rdh) ? (o2::raw::RDHUtils::getFEEID(rdh) & 0x1F) : 0; } // TODO: CHANGE
 
 } // namespace raw
 } // namespace mid
