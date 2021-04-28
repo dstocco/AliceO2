@@ -50,8 +50,8 @@ void ELinkDataShaper::set(uint32_t orbit)
     // The reset changes depending on the way we synch with the orbit
     // (see processOrbitTrigger for details)
     // FIXME: pick one of the two
-    // mIR.orbit = orbit - 1; // with orbit increase
-    mIR.orbit = orbit; // with reset to RDH
+    mIR.orbit = orbit - 1; // with orbit increase
+    // mIR.orbit = orbit; // with reset to RDH
     mLastClock = constants::lhc::LHCMaxBunches;
   }
 }
@@ -93,8 +93,8 @@ void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWo
   // - set the orbit to the one found in RDH
   //   (CAVEAT: synch is lost if we have lot of data, spanning over two orbits)
   // FIXME: pick one of the two
-  // ++mIR.orbit; // orbit increase
-  mIR.orbit = mRDHOrbit; // reset to RDH
+  ++mIR.orbit; // orbit increase
+  // mIR.orbit = mRDHOrbit; // reset to RDH
   if ((triggerWord & raw::sSOX) == 0) {
     mLastClock = localClock;
   }
