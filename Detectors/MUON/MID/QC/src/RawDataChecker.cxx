@@ -18,8 +18,6 @@
 #include <unordered_map>
 #include "MIDRaw/CrateParameters.h"
 
-#include <future> // TODO: CHECK
-
 namespace o2
 {
 namespace mid
@@ -49,19 +47,8 @@ bool RawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<con
     rofs[feeId].emplace_back(rof);
   }
 
-  // for (auto& item : rofs) {
-  //   isOk &= mCheckers[item.first].process(localBoards, item.second, pageRecords);
-  //   mDebugMsg += mCheckers[item.first].getDebugMessage();
-  // }
-
-  std::vector<std::future<bool>> futures;
   for (auto& item : rofs) {
-    futures.emplace_back(std::async(std::launch::async, &GBTRawDataChecker::process, &mCheckers[item.first], localBoards, item.second, pageRecords));
-  }
-  for (auto& fut : futures) {
-    isOk &= fut.get();
-  }
-  for (auto& item : rofs) {
+    isOk &= mCheckers[item.first].process(localBoards, item.second, pageRecords);
     mDebugMsg += mCheckers[item.first].getDebugMessage();
   }
 
