@@ -43,7 +43,7 @@ class GBTRawDataChecker
   unsigned int getNBusyRaised() const { return mStatistics[2]; }
   /// Gets the
   std::string getDebugMessage() const { return mDebugMsg; }
-  void clear();
+  void clear(bool all = false);
 
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
