@@ -608,10 +608,12 @@ bool GBTRawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<
   return runCheckEvents(getLastCompleteTrigEvent());
 }
 
-void GBTRawDataChecker::clear()
+void GBTRawDataChecker::clear(bool all)
 {
   /// Resets the masks and flags
-  mMasks.clear();
+  if (all) {
+    mMasks.clear();
+  }
   // mBusyFlagTrig.clear();
   // mBusyFlagSelfTrig.clear();
   mStatistics.fill(0);
