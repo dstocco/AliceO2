@@ -27,6 +27,7 @@ o2_add_library(
           src/RawWriterSpec.cxx
           src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx
+          src/UserLogicCheckerSpec.cxx
           src/ZeroSuppressionSpec.cxx
   PUBLIC_LINK_LIBRARIES
     O2::Framework
@@ -114,4 +115,10 @@ o2_add_executable(
   mask-maker-workflow
   COMPONENT_NAME mid
   SOURCES src/mask-maker-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+o2_add_executable(
+  ul-checker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/ul-checker-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
