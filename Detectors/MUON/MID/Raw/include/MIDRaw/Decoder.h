@@ -46,7 +46,7 @@ class Decoder
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
+    auto feeId = o2::raw::RDHUtils::getFEEID(rdh) & 0x7F; // TODO: CHANGE
 #if defined(MID_RAW_VECTORS)
     mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
 #else
