@@ -17,6 +17,7 @@ o2_add_library(
           src/DigitReaderSpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
+          src/MaskMakerSpec.cxx
           src/RawAggregatorSpec.cxx
           src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
@@ -38,6 +39,7 @@ o2_add_library(
     O2::DataFormatsMID
     O2::MIDClustering
     O2::MIDCTF
+    O2::MIDFiltering
     O2::MIDQC
     O2::MIDRaw
     O2::MIDSimulation
@@ -120,4 +122,14 @@ o2_add_executable(
 
 target_include_directories(
   ${exenamedigitswriter}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  mask-maker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/mask-maker-workflow.cxx TARGETVARNAME exenamemaskmaker
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exenamemaskmaker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
