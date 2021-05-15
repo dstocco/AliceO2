@@ -27,7 +27,8 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofVec, std::vector<ColumnData>& colVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::array<std::vector<ROFRecord>, NEvTypes>& rofVec,
+                            std::array<std::vector<ColumnData>, NEvTypes>& colVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;

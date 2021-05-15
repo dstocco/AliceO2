@@ -50,13 +50,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
-  struct RofData {
-    DataRef rofsRef;
-    DataRef colsRef;
-  };
-
-  std::unordered_map<o2::header::DataHeader::SubSpecificationType, RofData> rofDataMap;
-
+  CTFHelper::TFData tfData;
   std::vector<InputSpec>
     filter = {
       {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, Lifetime::Timeframe},
@@ -64,41 +58,24 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     };
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), filter)) {
     auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+    if (dh->subSpecification >= NEvTypes) {
+      throw std::runtime_error(fmt::format("SubSpecification={} does not match EvenTypes for {}", dh->subSpecification, dh->dataDescription.as<std::string>()));
+    }
     if (DataRefUtils::match(inputRef, "cols")) {
-      rofDataMap[dh->subSpecification].colsRef = inputRef;
+      tfData.colData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
     }
     if (DataRefUtils::match(inputRef, "rofs")) {
-      rofDataMap[dh->subSpecification].rofsRef = inputRef;
+      tfData.rofData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
     }
   }
-
-  std::vector<o2::mid::ROFRecord> rofs;
-  std::vector<o2::mid::ColumnData> cols;
-
-  for (auto& item : rofDataMap) {
-    size_t offset = cols.size();
-    auto colsSpec = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(item.second.colsRef);
-    cols.insert(cols.end(), colsSpec.begin(), colsSpec.end());
-    auto rofsSpec = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(item.second.rofsRef);
-    std::cout << "subspec: " << item.first << " ncols: " << colsSpec.size() << " nRofs: " << rofsSpec.size() << "  offset: " << offset << std::endl; // TODO: REMOVE
-    for (auto& rof : rofsSpec) {
-      rofs.emplace_back(rof);
-      std::cout << "First: " << rofs.back().firstEntry;
-      rofs.back().firstEntry += offset;
-      std::cout << " => " << rofs.back().firstEntry << std::endl;
-    }
-  }
+  // build references for looping over the data in BC increasing direction
+  tfData.buildReferences();
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe});
-  printf("Encoding\n"); // TODO: REMOVE
-  mCTFCoder.encode(buffer, rofs, cols);
-  printf("Getting\n");                // TODO: REMOVE
+  mCTFCoder.encode(buffer, tfData);
   auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  printf("Compactifying\n");          // TODO: REMOVE
   eeb->compactify();                  // eliminate unnecessary padding
-  printf("Resizing\n");               // TODO: REMOVE
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  printf("Stopping\n");               // TODO: REMOVE
   //  eeb->print();
   mTimer.Stop();
   LOG(INFO) << "Created encoded data of size " << eeb->size() << " for MID in " << mTimer.CpuTime() - cput << " s";
