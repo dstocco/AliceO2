@@ -15,12 +15,15 @@
 /// \date   17 March 2018
 
 #include "benchmark/benchmark.h"
+#include <algorithm>
+#include <random>
 #include <vector>
 #include "Framework/Logger.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/RawFileReader.h"
 #include "DPLUtils/RawParser.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROFRecord.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/Encoder.h"
@@ -103,6 +106,27 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   return data;
 }
 
+std::vector<o2::mid::ROFRecord> generateRofs(size_t nRofs = 2500)
+{
+  std::uniform_int_distribution<uint16_t> distBC(0, o2::constants::lhc::LHCMaxBunches);
+  std::uniform_int_distribution<uint32_t> distOrbit(0, 0xFFFFFFFF);
+  std::poisson_distribution<> distNcol(2);
+
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::vector<o2::mid::ROFRecord> rofs;
+  for (size_t irof = 0; irof < nRofs; ++irof) {
+    std::vector<o2::InteractionRecord> ir(distBC(mt), distOrbit(mt));
+    auto nCol = distNcol(mt);
+    for (size_t icol = 0; icol < nCol; ++icol) {
+      rofs.push_back({{distBC(mt), distOrbit(mt)}, o2::mid::EventType::Standard, irof, 1});
+    }
+  }
+  // std::shuffle(rofs.begin(), rofs.end(), mt);
+
+  return rofs;
+}
+
 static void BM_Decoder(benchmark::State& state)
 {
   o2::mid::Decoder decoder;
@@ -153,6 +177,67 @@ static void BM_LinkDecoder(benchmark::State& state)
   state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
 }
 
+static void BM_OrderMapIdx(benchmark::State& state)
+{
+  auto rofs = generateRofs();
+  std::map<uint64_t, std::vector<size_t>> eventIndexes;
+  std::vector<o2::mid::ROFRecord> orderedRofs;
+  size_t num{0};
+  for (auto _ : state) {
+    for (auto rofIt = rofs.begin(); rofIt != rofs.end(); ++rofIt) {
+      eventIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofs.begin());
+    }
+    for (auto& item : eventIndexes) {
+      orderedRofs.emplace_back(rofs[item.second.front()]);
+    }
+    eventIndexes.clear();
+    orderedRofs.clear();
+    ++num;
+  }
+  state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
+}
+
+static void BM_OrderMapIR(benchmark::State& state)
+{
+  auto rofs = generateRofs();
+  std::map<o2::InteractionRecord, std::vector<size_t>> eventIndexes;
+  std::vector<o2::mid::ROFRecord> orderedRofs;
+  size_t num{0};
+  for (auto _ : state) {
+    for (auto rofIt = rofs.begin(); rofIt != rofs.end(); ++rofIt) {
+      eventIndexes[rofIt->interactionRecord].emplace_back(rofIt - rofs.begin());
+    }
+    for (auto& item : eventIndexes) {
+      orderedRofs.emplace_back(rofs[item.second.front()]);
+    }
+    eventIndexes.clear();
+    orderedRofs.clear();
+    ++num;
+  }
+  state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
+}
+
+static void BM_OrderVector(benchmark::State& state)
+{
+  auto rofs = generateRofs();
+  std::unordered_map<uint64_t, std::vector<size_t>> eventIndexes;
+  std::vector<o2::mid::ROFRecord> orderedRofs;
+  size_t num{0};
+  for (auto _ : state) {
+    for (auto rofIt = rofs.begin(); rofIt != rofs.end(); ++rofIt) {
+      eventIndexes[rofIt->interactionRecord.toLong()].emplace_back(rofIt - rofs.begin());
+    }
+    for (auto& item : eventIndexes) {
+      orderedRofs.emplace_back(rofs[item.second.front()]);
+    }
+    std::sort(orderedRofs.begin(), orderedRofs.end(), [](const o2::mid::ROFRecord& first, const o2::mid::ROFRecord& second) { return first.interactionRecord < second.interactionRecord; });
+    eventIndexes.clear();
+    orderedRofs.clear();
+    ++num;
+  }
+  state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
+}
+
 static void CustomArguments(benchmark::internal::Benchmark* bench)
 {
   // One per event
@@ -166,5 +251,9 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
 
 BENCHMARK(BM_LinkDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 BENCHMARK(BM_Decoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
+
+BENCHMARK(BM_OrderMapIdx);
+BENCHMARK(BM_OrderMapIR);
+BENCHMARK(BM_OrderVector);
 
 BENCHMARK_MAIN();
