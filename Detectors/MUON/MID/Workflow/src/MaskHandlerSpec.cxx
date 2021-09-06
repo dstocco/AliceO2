@@ -107,9 +107,9 @@ class MaskHandlerDeviceDPL
   }
 
  private:
-  std::array<ChannelMasksHandler, 2> mMasksHandlers{};        ///< Output masks
-  std::chrono::duration<double> mTimer{0};            ///< full timer
-  std::chrono::duration<double> mTimerMaskHandler{0}; ///< mask handler timer
+  std::array<ChannelMasksHandler, 2> mMasksHandlers{}; ///< Output masks
+  std::chrono::duration<double> mTimer{0};             ///< full timer
+  std::chrono::duration<double> mTimerMaskHandler{0};  ///< mask handler timer
 };
 
 framework::DataProcessorSpec getMaskHandlerSpec()
