@@ -22,7 +22,6 @@ namespace mid
 
 MpArea PreClusterHelper::getArea(const PreCluster& pc) const
 {
-  /// Gets the area of the pre-cluster in the bending plane
   /// The method can also return the full area in the NBP
   /// However, in this case the area is always correct only in x.
   /// On the other hand, for the cut RPC the area is not well defined
@@ -49,7 +48,7 @@ MpArea PreClusterHelper::getArea(const PreCluster& pc) const
 
 MpArea PreClusterHelper::getArea(int column, const PreCluster& pc) const
 {
-  /// Gets the area of the pre-cluster in the non-bending plane in column
+
   if (column > pc.lastColumn || column < pc.firstColumn) {
     throw std::runtime_error("Required column is not in pre-cluster");
   }
@@ -59,6 +58,17 @@ MpArea PreClusterHelper::getArea(int column, const PreCluster& pc) const
   MpArea first = mMapping.stripByLocation(firstStrip, 1, 0, column, pc.deId, false);
   MpArea last = mMapping.stripByLocation(lastStrip, 1, 0, column, pc.deId, false);
   return MpArea{first.getXmin(), first.getYmin(), last.getXmax(), last.getYmax()};
+}
+
+std::vector<int> PreClusterHelper::getBoardIds(const PreCluster& pc) const
+{
+  std::vector<int> locIds;
+  for (int icol = pc.firstColumn; icol <= pc.lastColumn; ++icol) {
+    for (int iline = pc.firstLine; iline <= pc.lastLine; ++iline) {
+      locIds.emplace_back(mMapping.getBoardId(iline, icol, pc.deId));
+    }
+  }
+  return locIds;
 }
 
 } // namespace mid
