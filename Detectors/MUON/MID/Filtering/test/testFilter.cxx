@@ -28,6 +28,7 @@
 #include "MIDFiltering/ChannelMasksHandler.h"
 #include "MIDFiltering/ChannelScalers.h"
 #include "MIDFiltering/FetToDead.h"
+#include "MIDFiltering/Filterer.h"
 #include "MIDFiltering/MaskMaker.h"
 
 namespace o2
@@ -166,6 +167,37 @@ BOOST_AUTO_TEST_CASE(FETConversion)
   // Since the mask in the FET conversion takes care of removing it
   BOOST_TEST(inverted.back().getBendPattern(3) == 0);
   BOOST_TEST(inverted.back().getNonBendPattern() == 0);
+}
+
+BOOST_AUTO_TEST_CASE(filter)
+{
+  auto data = generateData(100);
+  std::vector<ROFRecord> rofs;
+  rofs.push_back({{1, 45}, EventType::Standard, 0, data.size()});
+
+  Filterer filterer;
+  filterer.process(data, rofs);
+  BOOST_TEST(filterer.getData().size() == data.size());
+  BOOST_TEST(filterer.getROFRecords().size() == rofs.size());
+
+  data.clear();
+  rofs.clear();
+  data.push_back({0, 0, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF});
+  data.push_back({1, 0, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF});
+  rofs.clear();
+  rofs.push_back({{1, 45}, EventType::Standard, 0, data.size()});
+  ChannelMasksHandler masksHandler;
+  ColumnData masks = data.front();
+  masks.setNonBendPattern(0);
+  for (int iline = 0; iline < 4; ++iline) {
+    masks.setBendPattern(0, iline);
+  }
+  masksHandler.setFromChannelMask(masks);
+
+  filterer.setMasks(masksHandler);
+  filterer.process(data, rofs);
+  BOOST_TEST(filterer.getData().size() == 1);
+  BOOST_TEST(filterer.getROFRecords().back().nEntries == 1);
 }
 
 } // namespace mid
