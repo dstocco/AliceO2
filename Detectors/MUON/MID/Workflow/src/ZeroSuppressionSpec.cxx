@@ -101,11 +101,11 @@ class ZeroSuppressionDeviceDPL
 
 framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC)
 {
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data_mc", header::gDataOriginMID, "DATAMC"}, of::InputSpec{"mid_data_mc_rof", header::gDataOriginMID, "DATAMCROF"}};
+  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_data_mc", header::gDataOriginMID, "FDATAMC"}, of::InputSpec{"mid_data_mc_rof", header::gDataOriginMID, "FDATAMCROF"}};
 
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DATA"}, of::OutputSpec{header::gDataOriginMID, "DATAROF"}};
   if (useMC) {
-    inputSpecs.emplace_back(of::InputSpec{"mid_data_mc_labels", header::gDataOriginMID, "DATAMCLABELS"});
+    inputSpecs.emplace_back(of::InputSpec{"mid_data_mc_labels", header::gDataOriginMID, "FDATAMCLABELS"});
     outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "DATALABELS"});
   }
 
