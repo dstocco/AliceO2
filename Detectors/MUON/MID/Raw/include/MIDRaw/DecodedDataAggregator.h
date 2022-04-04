@@ -31,16 +31,39 @@ namespace mid
 class DecodedDataAggregator
 {
  public:
+  /// Aggregates the decoded raw data
+  /// \param localBoards Vector of local boards
+  /// \param rofRecords Vector of ROF records
   void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords);
 
-  /// Gets the vector of data
-  const std::vector<ColumnData>& getData(EventType eventType = EventType::Standard) { return mData[static_cast<int>(eventType)]; }
+  /// Gets the vector of data per event
+  /// \param eventType Event type
+  /// \return Vector of column data
+  const std::vector<ColumnData>& getData(EventType eventType) const { return mData[static_cast<int>(eventType)]; }
+
+  /// Gets the vector of data with all event types
+  std::vector<ColumnData> getData() const;
 
   /// Gets the vector of data RO frame records
-  const std::vector<ROFRecord>& getROFRecords(EventType eventType = EventType::Standard) { return mROFRecords[static_cast<int>(eventType)]; }
+  /// \param eventType Event type
+  /// \return Vector of ROF records
+  const std::vector<ROFRecord>& getROFRecords(EventType eventType) const { return mROFRecords[static_cast<int>(eventType)]; }
+
+  /// Gets the vector of ROF records with all event types
+  std::vector<ROFRecord> getROFRecords() const;
 
  private:
+  /// Converts the local board data to ColumnData
+  /// \param col Local board
+  /// \param firstEntry Index of the first ColumnData in the event
+  /// \param evtTypeIdx Event type as size_t
   void addData(const ROBoard& col, size_t firstEntry, size_t evtTypeIdx);
+  /// Gets the matching column data. Adds one if not found
+  /// \param deId Detection element ID
+  /// \param deId Column ID
+  /// \param firstEntry Index of the first ColumnData in the event
+  /// \param evtTypeIdx Event type as size_t
+  /// \return Matching column data or new one if not found
   ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry, size_t evtTypeIdx);
 
   std::array<std::map<uint64_t, std::vector<size_t>>, 3> mEventIndexes{}; /// Event indexes

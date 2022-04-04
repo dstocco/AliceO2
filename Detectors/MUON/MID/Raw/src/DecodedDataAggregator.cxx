@@ -26,8 +26,6 @@ namespace mid
 
 ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry, size_t evtTypeIdx)
 {
-  /// Gets the matching column data
-  /// Adds one if not found
   for (auto colIt = mData[evtTypeIdx].begin() + firstEntry, end = mData[evtTypeIdx].end(); colIt != end; ++colIt) {
     if (colIt->deId == deId && colIt->columnId == columnId) {
       return *colIt;
@@ -39,7 +37,6 @@ ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId
 
 void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry, size_t evtTypeIdx)
 {
-  /// Converts the local board data to ColumnData
   uint8_t uniqueLocId = loc.boardId;
   uint8_t crateId = raw::getCrateId(uniqueLocId);
   bool isRightSide = crateparams::isRightSide(crateId);
@@ -64,8 +61,6 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry, size_
 
 void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords)
 {
-  /// Aggregates the decoded raw data
-
   // First clear the output
   for (auto& data : mData) {
     data.clear();
@@ -98,6 +93,24 @@ void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::s
     // Clear the inner objects when the computation is done
     mEventIndexes[ievtType].clear();
   } // loop on event types
+}
+
+std::vector<ColumnData> DecodedDataAggregator::getData() const
+{
+  std::vector<ColumnData> data;
+  for (auto& evtData : mData) {
+    data.insert(data.end(), evtData.begin(), evtData.end());
+  }
+  return data;
+}
+
+std::vector<ROFRecord> DecodedDataAggregator::getROFRecords() const
+{
+  std::vector<ROFRecord> rofs;
+  for (auto& evtRofs : mROFRecords) {
+    rofs.insert(rofs.end(), evtRofs.begin(), evtRofs.end());
+  }
+  return rofs;
 }
 
 } // namespace mid

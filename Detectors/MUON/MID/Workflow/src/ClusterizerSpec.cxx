@@ -80,17 +80,8 @@ class ClusterizerDeviceDPL
       {"check_rof", of::ConcreteDataMatcher{header::gDataOriginMID, "DATAROF", 0}, of::Lifetime::Timeframe},
     };
 
-    gsl::span<const ColumnData> patterns;
-    gsl::span<const ROFRecord> inROFRecords;
-
-    for (auto const& inputRef : of::InputRecordWalker(pc.inputs(), filter)) {
-      if (of::DataRefUtils::match(inputRef, "mid_data")) {
-        patterns = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-      }
-      if (of::DataRefUtils::match(inputRef, "mid_data_rof")) {
-        inROFRecords = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-      }
-    }
+    gsl::span<const ColumnData> patterns = pc.inputs().get<gsl::span<o2::mid::ColumnData>>("mid_data");
+    gsl::span<const ROFRecord> inROFRecords = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("mid_data_rof");
 
     // Pre-clustering
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
@@ -140,8 +131,8 @@ class ClusterizerDeviceDPL
 framework::DataProcessorSpec getClusterizerSpec(bool isMC)
 {
   std::vector<of::InputSpec> inputSpecs;
-  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
-  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
+  inputSpecs.emplace_back("mid_data", header::gDataOriginMID, "DATA", 0, of::Lifetime::Timeframe);
+  inputSpecs.emplace_back("mid_data_rof", header::gDataOriginMID, "DATAROF", 0, of::Lifetime::Timeframe);
 
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}, of::OutputSpec{"MID", "CLUSTERSROF"}};
 

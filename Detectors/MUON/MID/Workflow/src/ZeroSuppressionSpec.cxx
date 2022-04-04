@@ -66,7 +66,7 @@ class ZeroSuppressionDeviceDPL
         tmpROFs.front().firstEntry = 0;
         tmpROFs.front().nEntries = decodedData.size();
         mAggregator.process(decodedData, tmpROFs);
-        auto& tmpOut = mAggregator.getData();
+        auto tmpOut = mAggregator.getData();
         zsROFs.emplace_back(rof.interactionRecord, rof.eventType, zsData.size(), tmpOut.size());
         zsData.insert(zsData.end(), tmpOut.begin(), tmpOut.end());
 
