@@ -118,7 +118,7 @@ o2_add_executable(
   efficiency-workflow
   COMPONENT_NAME mid
   SOURCES src/EfficiencySpec.cxx src/efficiency-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MIDWorkflow)
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
   
 
 o2_add_executable(

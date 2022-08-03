@@ -8,7 +8,7 @@ namespace o2
 namespace mid
 {
 
-framework::DataProcessorSpec getEfficiencySpec(const char* name = "Efficiency");
+framework::DataProcessorSpec getEfficiencySpec();
 
 } // namespace mid
 } // namespace o2
