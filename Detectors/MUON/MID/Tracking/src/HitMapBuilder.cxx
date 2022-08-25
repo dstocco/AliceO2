@@ -69,13 +69,14 @@ int HitMapBuilder::getLocId(double xp, double yp, uint8_t deId) const
 void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> clusters) const
 {
   std::vector<int> firedLocIds, nonFiredLocIds;
-  std::vector<int> firedDeIds, firedRPCLines, nonFiredRPCLines;
+  std::vector<int> firedRPCLines, nonFiredRPCLines;
+  bool isRightSide = false;
   bool outsideAcceptance = false;
   for (int ich = 0; ich < 4; ++ich) {
     auto icl = track.getClusterMatchedUnchecked(ich);
     if (icl >= 0) {
       auto& cl = clusters[icl];
-      firedDeIds.emplace_back(cl.deId);
+      isRightSide = detparams::isRightSide(cl.deId);
       firedRPCLines.emplace_back(detparams::getRPCLine(cl.deId));
       firedLocIds.emplace_back(getLocId(cl.xCoor, cl.yCoor, cl.deId));
       // auto localPt = mHitFinder.getGeometryTransformer().globalToLocal(cl.deId, cl.xCoor, cl.yCoor, cl.zCoor);
@@ -95,7 +96,8 @@ void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> cluste
       }
     }
   }
-  track.setFiredDeId(firedDeIds.front());
+  // Re build the deId of the MT11
+  track.setFiredDeId(detparams::getDEId(isRightSide, 0, firedRPCLines.front()));
   track.setFiredLocalBoard(firedLocIds.front());
   int effFlag = 0;
   if (!outsideAcceptance) {
