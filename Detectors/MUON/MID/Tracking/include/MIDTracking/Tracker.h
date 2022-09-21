@@ -18,6 +18,7 @@
 #define O2_MID_TRACKER_H
 
 #include <vector>
+#include <unordered_map>
 #include <unordered_set>
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster.h"
@@ -42,9 +43,9 @@ class Tracker
 
   void process(gsl::span<const Cluster> clusters, bool accumulate = false);
   void process(gsl::span<const Cluster> clusters, gsl::span<const ROFRecord> rofRecords);
-  bool init(bool keepAll = false);
+  bool init(bool keepAllTracks = true, bool keepAllClusters = false);
 
-  /// Gets the array of reconstructes tracks
+  /// Gets the array of reconstructed tracks
   const std::vector<Track>& getTracks() { return mTracks; }
 
   /// Gets the array of associated clusters
@@ -55,6 +56,9 @@ class Tracker
 
   /// Gets the vector of cluster RO frame records
   const std::vector<ROFRecord>& getClusterROFRecords() { return mClusterROFRecords; }
+
+  /// Gets the cluster remapping indexes
+  const std::unordered_map<size_t, size_t> getClustersRemap() { return mClustersRemap; }
 
  private:
   void processSide(bool isRight, bool isInward);
@@ -72,15 +76,16 @@ class Tracker
   bool tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const;
   void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters) const;
   bool skipOneChamber(Track& track) const;
+  void selectAssociatedClusters();
 
-  static constexpr float SMT11Z = -1603.5; ///< Position of the first MID chamber (cm)
+  static constexpr float SMT11Z = -1603.5;     ///< Position of the first MID chamber (cm)
 
-  float mImpactParamCut = 210.; ///< Cut on impact parameter
-  float mSigmaCut = 5.;         ///< Number of sigmas cut
-  float mMaxChi2 = 50.;         ///< Maximum cut on chi2 to attach a cluster (= 2 * mSigmaCut^2)
+  float mImpactParamCut = 210.;                ///< Cut on impact parameter
+  float mSigmaCut = 5.;                        ///< Number of sigmas cut
+  float mMaxChi2 = 50.;                        ///< Maximum cut on chi2 to attach a cluster (= 2 * mSigmaCut^2)
 
-  std::vector<int> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
-  std::vector<Cluster> mClusters{};     ///< 3D clusters
+  std::vector<int> mClusterIndexes[72];        ///< Ordered arrays of clusters indexes
+  std::vector<Cluster> mClusters{};            ///< 3D clusters
 
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
@@ -89,10 +94,13 @@ class Tracker
   size_t mTrackOffset{0};                      ///! Offset for the track in the current event
   int mNTracksStep1{0};                        ///! Number of tracks found in the first tracking step
 
-  GeometryTransformer mTransformer{}; ///< Geometry transformer
+  GeometryTransformer mTransformer{};          ///< Geometry transformer
 
   typedef void (Tracker::*TrackerMemFn)(Track&, bool, bool);
   TrackerMemFn mFollowTrack{&Tracker::followTrackKeepAll}; ///! Choice of the function to follow the track
+
+  bool mKeepAllClusters = false;                           // Keep all clusters
+  std::unordered_map<size_t, size_t> mClustersRemap;       /// Clusters remapping indexes
 };
 } // namespace mid
 } // namespace o2
