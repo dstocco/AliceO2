@@ -18,6 +18,7 @@
 #define O2_MID_TRACKER_H
 
 #include <vector>
+#include <unordered_map>
 #include <unordered_set>
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster.h"
@@ -42,9 +43,9 @@ class Tracker
 
   void process(gsl::span<const Cluster> clusters, bool accumulate = false);
   void process(gsl::span<const Cluster> clusters, gsl::span<const ROFRecord> rofRecords);
-  bool init(bool keepAll = false);
+  bool init(bool keepAllTracks = true, bool keepAllClusters = false);
 
-  /// Gets the array of reconstructes tracks
+  /// Gets the array of reconstructed tracks
   const std::vector<Track>& getTracks() { return mTracks; }
 
   /// Gets the array of associated clusters
@@ -55,6 +56,9 @@ class Tracker
 
   /// Gets the vector of cluster RO frame records
   const std::vector<ROFRecord>& getClusterROFRecords() { return mClusterROFRecords; }
+
+  /// Gets the cluster remapping indexes
+  const std::unordered_map<size_t, size_t> getClustersRemap() { return mClustersRemap; }
 
  private:
   bool processSide(bool isRight, bool isInward);
@@ -71,6 +75,7 @@ class Tracker
   void runKalmanFilter(Track& track, const Cluster& cluster) const;
   bool tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const;
   void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters);
+  void selectAssociatedClusters();
 
   static constexpr float SMT11Z = -1603.5; ///< Position of the first MID chamber (cm)
 
@@ -91,7 +96,10 @@ class Tracker
   GeometryTransformer mTransformer{}; ///< Geometry transformer
 
   typedef bool (Tracker::*TrackerMemFn)(const Track&, bool, bool);
-  TrackerMemFn mFollowTrack{&Tracker::followTrackKeepBest}; ///! Choice of the function to follow the track
+  TrackerMemFn mFollowTrack{&Tracker::followTrackKeepAll}; ///! Choice of the function to follow the track
+
+  bool mKeepAllClusters = false;                     // Keep all clusters
+  std::unordered_map<size_t, size_t> mClustersRemap; /// Clusters remapping indexes
 };
 } // namespace mid
 } // namespace o2
