@@ -83,7 +83,7 @@ MCCompLabel TrackLabeler::makeTrackLabel(const Track& track, const o2::dataforma
   return outLabel;
 }
 
-void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
+void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer, const std::unordered_map<size_t, size_t>& clustersRemap)
 {
   /// Applies labels to the tracks
   mMCTracksLabels.clear();
@@ -92,10 +92,21 @@ void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Tr
     mMCTracksLabels.emplace_back(makeTrackLabel(track, inMCContainer));
   }
 
-  // For the moment we store all clusters
-  // This can change if we decide to store only associated clusters
   mMCTrackClustersLabels.clear();
-  mMCTrackClustersLabels.mergeAtBack(inMCContainer);
+  if (clustersRemap.empty()) {
+    // This happens when we keep all clusters
+    // In this case, there is a perfect correspondence between the input and output labels
+    mMCTrackClustersLabels.mergeAtBack(inMCContainer);
+  } else {
+    // General case when we keep only the maps associated to tracks
+    std::unordered_map<size_t, size_t> inverted;
+    for (auto& item : clustersRemap) {
+      inverted[item.second] = item.first;
+    }
+    for (size_t icl = 0; icl < clusters.size(); ++icl) {
+      mMCTrackClustersLabels.addElements(icl, inMCContainer.getLabels(inverted[icl]));
+    }
+  }
 }
 } // namespace mid
 } // namespace o2

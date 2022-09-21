@@ -35,11 +35,11 @@ Tracker::Tracker(const GeometryTransformer& geoTrans) : mTransformer(geoTrans)
 }
 
 //______________________________________________________________________________
-bool Tracker::init(bool keepAll)
+bool Tracker::init(bool keepAllTracks, bool keepAllClusters)
 {
   /// Initializes the tracker
 
-  if (keepAll) {
+  if (keepAllTracks) {
     mFollowTrack = &Tracker::followTrackKeepAll;
   } else {
     mFollowTrack = &Tracker::followTrackKeepBest;
@@ -48,6 +48,8 @@ bool Tracker::init(bool keepAll)
   mImpactParamCut = TrackerParam::Instance().impactParamCut;
   mSigmaCut = TrackerParam::Instance().sigmaCut;
   mMaxChi2 = 2. * mSigmaCut * mSigmaCut;
+
+  mKeepAllClusters = keepAllClusters;
 
   return true;
 }
@@ -103,6 +105,41 @@ void Tracker::process(gsl::span<const Cluster> clusters, gsl::span<const ROFReco
     auto nClusterEntries = mClusters.size() - firstClusterEntry;
     mClusterROFRecords.emplace_back(rofRecord, firstClusterEntry, nClusterEntries);
   }
+
+  if (!mKeepAllClusters) {
+    selectAssociatedClusters();
+  }
+}
+
+void Tracker::selectAssociatedClusters()
+{
+  /// Selects only the clusters associated to the track
+  mClustersRemap.clear();
+  std::vector<Cluster> clusters;
+  std::vector<ROFRecord> rofs;
+  for (auto& rof : mTrackROFRecords) {
+    auto firstEntry = clusters.size();
+    for (auto trackIt = mTracks.begin() + rof.firstEntry, end = mTracks.begin() + rof.getEndIndex(); trackIt != end; ++trackIt) {
+      for (int ich = 0; ich < 4; ++ich) {
+        auto icl = trackIt->getClusterMatchedUnchecked(ich);
+        size_t newIdx = 0;
+        if (icl >= 0) {
+          auto found = mClustersRemap.find(icl);
+          if (found == mClustersRemap.end()) {
+            newIdx = clusters.size();
+            mClustersRemap[icl] = newIdx;
+            clusters.emplace_back(mClusters[icl]);
+          } else {
+            newIdx = found->second;
+          }
+          trackIt->setClusterMatchedUnchecked(ich, newIdx);
+        }
+      }
+    }
+    rofs.emplace_back(rof, firstEntry, clusters.size() - firstEntry);
+  }
+  mClusters.swap(clusters);
+  mClusterROFRecords.swap(rofs);
 }
 
 //______________________________________________________________________________

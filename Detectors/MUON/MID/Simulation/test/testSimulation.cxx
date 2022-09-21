@@ -102,7 +102,7 @@ struct SimTracking {
   SimTracking() : tracker(simBase.geoTrans), trackGen(), hitFinder(simBase.geoTrans), trackLabeler()
   {
     trackGen.setSeed(123456789);
-    tracker.init(true);
+    tracker.init(true, true);
   }
 };
 
@@ -575,7 +575,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   simClustering.preClusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simDigitizer.digitsMerger.getMCContainer(), simClustering.preClusterizer.getROFRecords(), simDigitizer.digitsMerger.getROFRecords());
   simClustering.clusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterLabeler.getContainer(), simClustering.clusterizer.getClusters(), simClustering.correlation);
   simTracking.tracker.process(simClustering.clusterizer.getClusters(), simClustering.clusterizer.getROFRecords());
-  simTracking.trackLabeler.process(simTracking.tracker.getClusters(), simTracking.tracker.getTracks(), simClustering.clusterLabeler.getContainer());
+  simTracking.trackLabeler.process(simTracking.tracker.getClusters(), simTracking.tracker.getTracks(), simClustering.clusterLabeler.getContainer(), simTracking.tracker.getClustersRemap());
 
   // For the moment we save all clusters
   BOOST_TEST(simTracking.tracker.getClusters().size() == simClustering.clusterizer.getClusters().size());

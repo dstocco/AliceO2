@@ -50,7 +50,8 @@ class TrackerDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-    mKeepAll = !ic.options().get<bool>("mid-tracker-keep-best");
+    mKeepAllTracks = !ic.options().get<bool>("mid-tracker-keep-best");
+    mKeepAllClusters = ic.options().get<bool>("mid-tracker-keep-all-clusters");
 
     auto stop = [this]() {
       double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
@@ -79,7 +80,7 @@ class TrackerDeviceDPL
 
     if (mIsMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>("mid_clusterlabels");
-      mTrackLabeler.process(mTracker->getClusters(), tracks, *labels);
+      mTrackLabeler.process(mTracker->getClusters(), tracks, *labels, mTracker->getClustersRemap());
       pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0}, mTrackLabeler.getTracksLabels());
       LOG(debug) << "Sent " << mTrackLabeler.getTracksLabels().size() << " indexed tracks.";
       pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0}, mTrackLabeler.getTrackClustersLabels());
@@ -133,7 +134,7 @@ class TrackerDeviceDPL
       initOnceDone = true;
       auto geoTrans = createTransformationFromManager(gGeoManager);
       mTracker = std::make_unique<Tracker>(geoTrans);
-      if (!mTracker->init(mKeepAll)) {
+      if (!mTracker->init(mKeepAllTracks, mKeepAllClusters)) {
         LOG(error) << "Initialization of MID tracker device failed";
       }
       mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
@@ -143,7 +144,8 @@ class TrackerDeviceDPL
   }
 
   bool mIsMC = false;
-  bool mKeepAll = false;
+  bool mKeepAllTracks = false;
+  bool mKeepAllClusters = false;
   bool mCheckMasked = false;
   TrackLabeler mTrackLabeler{};
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -190,7 +192,8 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked)
     {inputSpecs},
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerDeviceDPL>(ggRequest, isMC, checkMasked),
-    of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}}}};
+    of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}},
+                {"mid-tracker-keep-all-clusters", of::VariantType::Bool, false, {"Keep all clusters (default is keep only those associated to tracks)"}}}};
 }
 } // namespace mid
 } // namespace o2

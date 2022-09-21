@@ -17,6 +17,7 @@
 #define O2_MID_TRACKLABELER_H
 
 #include <vector>
+#include <unordered_map>
 #include <gsl/gsl>
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -31,7 +32,7 @@ namespace mid
 class TrackLabeler
 {
  public:
-  void process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer);
+  void process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer, const std::unordered_map<size_t, size_t>& clustersRemap);
 
   /// Returns the tracks labels
   const std::vector<MCCompLabel>& getTracksLabels() { return mMCTracksLabels; }
