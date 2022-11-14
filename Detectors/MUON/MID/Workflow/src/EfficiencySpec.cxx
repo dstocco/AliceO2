@@ -52,11 +52,12 @@ class EfficiencyTask
     std::array<Efficiency::ElementType, 3> elTypes{Efficiency::ElementType::Board, Efficiency::ElementType::RPC, Efficiency::ElementType::Plane};
     std::array<std::string, 3> elName{"Board", "RPC", "Plane"};
     std::array<int, 3> nBins{4 * detparams::NLocalBoards, detparams::NDetectionElements, detparams::NChambers};
+    std::array<double, 3> firstVal{1., 0., 0.};
     for (size_t iel = 0; iel < elTypes.size(); ++iel) {
       for (size_t itype = 0; itype < types.size(); ++itype) {
         std::string name = names[itype] + "per";
         name += elName[iel];
-        histos.emplace_back(name.c_str(), name.c_str(), nBins[iel], 0., nBins[iel]);
+        histos.emplace_back(name.c_str(), name.c_str(), nBins[iel], firstVal[iel], nBins[iel] + static_cast<int>(firstVal[iel]));
         histos.back().GetXaxis()->SetTitle(elName[iel].c_str());
         for (auto& count : mEfficiency.getChamberEfficiency(elTypes[iel]).getCountersAsVector()) {
           int ibin = count.deId + 1;
