@@ -12,9 +12,8 @@
 o2_add_library(
   MIDFiltering
   SOURCES src/ChannelMasksHandler.cxx src/ChannelScalers.cxx src/FetToDead.cxx
-          src/Filterer.cxx src/MaskMaker.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase O2::MIDRaw
-                        Microsoft.GSL::GSL)
+          src/Filterer.cxx src/MaskMaker.cxx src/FiltererBC.cxx
+  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::DataFormatsMID O2::MIDBase O2::MIDRaw Microsoft.GSL::GSL)
 
 add_subdirectory(exe)
 

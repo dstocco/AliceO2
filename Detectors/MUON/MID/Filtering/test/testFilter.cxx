@@ -30,6 +30,7 @@
 #include "MIDFiltering/FetToDead.h"
 #include "MIDFiltering/Filterer.h"
 #include "MIDFiltering/MaskMaker.h"
+#include "MIDFiltering/FiltererBC.h"
 
 namespace o2
 {
@@ -45,7 +46,7 @@ std::vector<ColumnData> generateData(size_t nData = 10)
   std::uniform_int_distribution<uint8_t> colIds(0, 6);
   std::uniform_int_distribution<uint16_t> patterns(0, 0xFFFF);
 
-  std::vector<o2::mid::ColumnData> data;
+  std::vector<ColumnData> data;
   for (size_t idata = 0; idata < nData; ++idata) {
     ColumnData col;
     col.deId = deIds(mt);
@@ -61,7 +62,7 @@ std::vector<ColumnData> generateData(size_t nData = 10)
 
 BOOST_AUTO_TEST_CASE(mask)
 {
-  o2::mid::ColumnData col1;
+  ColumnData col1;
   col1.deId = 71;
   col1.columnId = 6;
   col1.setNonBendPattern(0x8000);
@@ -81,12 +82,12 @@ BOOST_AUTO_TEST_CASE(mask)
 BOOST_AUTO_TEST_CASE(scalers)
 {
 
-  o2::mid::ColumnData col1;
+  ColumnData col1;
   col1.deId = 71;
   col1.columnId = 6;
   col1.setNonBendPattern(0x8000);
 
-  o2::mid::ChannelScalers cs;
+  ChannelScalers cs;
   cs.count(col1);
   auto sc1 = cs.getScalers();
   BOOST_REQUIRE(sc1.size() == 1);
@@ -99,7 +100,7 @@ BOOST_AUTO_TEST_CASE(scalers)
   }
   cs.reset();
 
-  o2::mid::ColumnData col2;
+  ColumnData col2;
   col2.deId = 25;
   col2.columnId = 3;
   col2.setBendPattern(0x0100, 3);
@@ -118,12 +119,12 @@ BOOST_AUTO_TEST_CASE(scalers)
 BOOST_AUTO_TEST_CASE(maskMaker)
 {
   auto data = generateData();
-  o2::mid::ChannelScalers cs;
-  std::vector<o2::mid::ColumnData> refMasks{};
+  ChannelScalers cs;
+  std::vector<ColumnData> refMasks{};
   for (auto col : data) {
     cs.reset();
     cs.count(col);
-    auto masks = o2::mid::makeMasks(cs, 1, 0., refMasks);
+    auto masks = makeMasks(cs, 1, 0., refMasks);
     BOOST_TEST(masks.size() == 1);
     for (auto& mask : masks) {
       for (int iline = 0; iline < 4; ++iline) {
@@ -198,6 +199,67 @@ BOOST_AUTO_TEST_CASE(filter)
   filterer.process(data, rofs);
   BOOST_TEST(filterer.getData().size() == 1);
   BOOST_TEST(filterer.getROFRecords().back().nEntries == 1);
+}
+
+BOOST_AUTO_TEST_CASE(filterBC)
+{
+  /// Tests the BC filtering
+  FiltererBC filterBC;
+  BunchFilling bcFill;
+  int collBC1 = 100;
+  int collBC2 = 105;
+  int bcDiffLow = -1;
+  int bcDiffHigh = 1;
+  bcFill.setBC(collBC1);
+  bcFill.setBC(collBC2);
+
+  filterBC.setBCDiffLow(bcDiffLow);
+  filterBC.setBCDiffHigh(bcDiffHigh);
+  std::vector<ColumnData> data;
+  std::vector<ROFRecord> rofs;
+
+  // Data compatible with collision BC1
+  InteractionRecord ir(collBC1 + bcDiffLow, 1);
+  rofs.emplace_back(ir, EventType::Standard, data.size(), 1);
+  ColumnData col;
+  col.deId = 3;
+  col.columnId = 1;
+  col.addStrip(2, 0, 0);
+  data.emplace_back(col);
+
+  // Data compatible with collision BC1
+  ir.bc = collBC1 + bcDiffHigh;
+  rofs.emplace_back(ir, EventType::Standard, data.size(), 1);
+  col.setBendPattern(0, 0);
+  col.addStrip(3, 0, 0);
+  data.emplace_back(col);
+
+  // Data not compatible with collision BC
+  ir.bc = collBC1 + bcDiffHigh + 1;
+  rofs.emplace_back(ir, EventType::Standard, data.size(), 1);
+  col.setBendPattern(0, 0);
+  col.addStrip(4, 0, 0);
+  data.emplace_back(col);
+
+  // Data compatible with collision BC2
+  ir.bc = collBC2;
+  rofs.emplace_back(ir, EventType::Standard, data.size(), 1);
+  col.columnId = 2;
+  data.emplace_back(col);
+
+  filterBC.process(data, rofs, bcFill);
+
+  BOOST_REQUIRE(filterBC.getROFRecords().size() == 2);
+
+  // Check that the first two are merged
+  BOOST_TEST(filterBC.getROFRecords().front().interactionRecord.bc == collBC1);
+  BOOST_TEST(filterBC.getROFRecords().front().nEntries == 1);
+  BOOST_TEST(filterBC.getData().front().getBendPattern(0) == ((1 << 2) | (1 << 3)));
+
+  // Check that the last is kept unchanged
+  BOOST_TEST(filterBC.getROFRecords().back().interactionRecord.bc == collBC2);
+  BOOST_TEST(filterBC.getROFRecords().back().nEntries == 1);
+  BOOST_TEST(filterBC.getData().back() == data.back());
 }
 
 } // namespace mid
