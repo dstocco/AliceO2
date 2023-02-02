@@ -98,8 +98,20 @@ class FilteringDeviceDPL
 
     for (auto& rof : inROFRecords) {
       auto firstEntry = maskedData.size();
+      std::stringstream ss; // TODO: REMOVE
+      int nFired = 0;       // TODO: REMOVE
       for (auto dataIt = data.begin() + rof.firstEntry, end = data.begin() + rof.getEndIndex(); dataIt != end; ++dataIt) {
         auto col = *dataIt;
+        int rpc = col.deId % 9;                               // TODO: REMOVE
+        if (col.deId < 36 && rpc == 1 && col.columnId == 2) { // TODO: REMOVE
+          ss << col << std::endl;                             // TODO: REMOVE
+          if (col.getBendPattern(1) != 0) {                   // TODO: REMOVE
+            ++nFired;                                         // TODO: REMOVE
+          }                                                   // TODO: REMOVE
+          if (col.deId == 1) {                                // TODO: REMOVE
+            nFired += 10;                                     // TODO: REMOVE
+          }                                                   // TODO: REMOVE
+        }                                                     // TODO: REMOVE
         if (mMasksHandler.applyMask(col)) {
           // Data are not fully masked
           maskedData.emplace_back(col);
@@ -107,6 +119,10 @@ class FilteringDeviceDPL
           mFillLabels(inIdx, maskedData.size() - 1, inMCContainer.get(), outMCContainer, col);
         }
       }
+      if (nFired >= 2) {                                 // TODO: REMOVE
+        std::cout << rof.interactionRecord << std::endl; // TODO: REMOVE
+        std::cout << ss.str() << std::endl;              // TODO: REMOVE
+      }                                                  // TODO: REMOVE
       auto nEntries = maskedData.size() - firstEntry;
       if (nEntries > 0) {
         maskedRofs.emplace_back(rof);
