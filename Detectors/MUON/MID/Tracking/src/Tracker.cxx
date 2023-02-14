@@ -99,7 +99,9 @@ void Tracker::process(gsl::span<const Cluster> clusters, gsl::span<const ROFReco
   for (auto& rofRecord : rofRecords) {
     auto firstTrackEntry = mTracks.size();
     auto firstClusterEntry = mClusters.size();
-    process(clusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
+    if (!process(clusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true)) {
+      LOG(error) << "Tracking aborted for " << rofRecord.interactionRecord;
+    }
     auto nTrackEntries = mTracks.size() - firstTrackEntry;
     mTrackROFRecords.emplace_back(rofRecord, firstTrackEntry, nTrackEntries);
     auto nClusterEntries = mClusters.size() - firstClusterEntry;
@@ -143,7 +145,7 @@ void Tracker::selectAssociatedClusters()
 }
 
 //______________________________________________________________________________
-void Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
+bool Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
 {
   /// Main function: runs on a data containing the clusters per event
   /// and builds the tracks
@@ -180,8 +182,10 @@ void Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
     } catch (std::exception const& e) {
       LOG(error) << e.what() << " --> abort";
       mTracks.erase(mTracks.begin() + mFirstTrackOffset, mTracks.end());
+      return false;
     }
   }
+  return true;
 }
 
 //______________________________________________________________________________
