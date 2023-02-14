@@ -41,7 +41,7 @@ class Tracker
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
-  void process(gsl::span<const Cluster> clusters, bool accumulate = false);
+  bool process(gsl::span<const Cluster> clusters, bool accumulate = false);
   void process(gsl::span<const Cluster> clusters, gsl::span<const ROFRecord> rofRecords);
   bool init(bool keepAllTracks = true, bool keepAllClusters = false);
 
