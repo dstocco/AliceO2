@@ -50,6 +50,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
       {"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
       {"disable-tracking", VariantType::Bool, false, {"Only run clustering"}},
       {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}},
+      {"enable-cluster-output", VariantType::Bool, false, {"Write cluster output to file"}},
       {"change-local-to-BC", VariantType::Int, 0, {"Change the delay between the MID local clock and the BC"}},
       {"disable-filtering", VariantType::Bool, false, {"Do not remove bad channels"}},
       {"enable-filter-BC", VariantType::Bool, false, {"Filter BCs"}},
@@ -66,6 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableTracking = cfgc.options().get<bool>("disable-tracking");
   bool disableFile = cfgc.options().get<bool>("disable-root-output");
   auto disableFiltering = cfgc.options().get<bool>("disable-filtering");
+  bool enableClusterOutput = (cfgc.options().get<bool>("enable-cluster-output") || disableTracking) && !disableFile;
   auto localToBC = cfgc.options().get<int>("change-local-to-BC");
   auto filterBC = cfgc.options().get<bool>("enable-filter-BC");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
@@ -98,19 +100,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     labelsDesc = prefix + baseLabelsDesc;
   }
   specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC, dataDesc, rofDesc, labelsDesc));
+  if (enableClusterOutput) {
+    specs.emplace_back(MakeRootTreeWriterSpec("MIDClusterWriter",
+                                              "mid-clusters.root",
+                                              "midclusters",
+                                              MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Cluster>>{InputSpec{"mid_clusters", o2::header::gDataOriginMID, "CLUSTERS"}, "MIDCluster"},
+                                              MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_clusters_rof", o2::header::gDataOriginMID, "CLUSTERSROF"}, "MIDClusterROF"},
+                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_clusters_labels", o2::header::gDataOriginMID, "CLUSTERSLABELS"}, "MIDClusterLabels", disableMC ? 0 : 1})());
+  }
   if (!disableTracking) {
     specs.emplace_back(o2::mid::getTrackerSpec(!disableMC, !disableFiltering));
-  }
-  if (!disableFile) {
-    if (disableTracking) {
-      specs.emplace_back(MakeRootTreeWriterSpec("MIDRecoWriter",
-                                                "mid-reco.root",
-                                                "midreco",
-                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Cluster>>{InputSpec{"mid_clusters", o2::header::gDataOriginMID, "CLUSTERS"}, "MIDCluster"},
-                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_clusters_rof", o2::header::gDataOriginMID, "CLUSTERSROF"}, "MIDClusterROF"},
-                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_clusters_labels", o2::header::gDataOriginMID, "CLUSTERSLABELS"}, "MIDClusterLabels", disableMC ? 0 : 1})());
-
-    } else {
+    if (!disableFile) {
       specs.emplace_back(MakeRootTreeWriterSpec("MIDRecoWriter",
                                                 "mid-reco.root",
                                                 "midreco",
