@@ -67,9 +67,6 @@ void Clusterizer::process(gsl::span<const PreCluster> preClusters, gsl::span<con
   mClusters.clear();
   mROFRecords.clear();
   for (auto& rofRecord : rofRecords) {
-    if (rofRecord.interactionRecord.bc != 1647 || rofRecord.interactionRecord.orbit != 74551097) { // TODO: REMOVE
-      continue;                                                                                    // TODO: REMOVE
-    }                                                                                              // TODO: REMOVE
     mPreClusterOffset = rofRecord.firstEntry;
     auto firstEntry = mClusters.size();
     process(preClusters.subspan(rofRecord.firstEntry, rofRecord.nEntries), true);
@@ -195,7 +192,6 @@ void Clusterizer::makeCluster(const MpArea& areaBP, const MpArea& areaNBP, uint8
   double errY = (areaBP.getYmax() - areaBP.getYmin()) / sqrt12;
   mClusters.push_back({static_cast<float>(xCoor), static_cast<float>(yCoor), 0., static_cast<float>(errX), static_cast<float>(errY), deId});
   mClusters.back().setBothFired();
-  printf("Simple pairing ch %i (%g, %g - %g, %g) + (%g, %g - %g, %g)\n", detparams::getChamber(deId), areaBP.getXmin(), areaBP.getXmax(), areaBP.getYmin(), areaBP.getYmax(), areaNBP.getXmin(), areaNBP.getXmax(), areaNBP.getYmin(), areaNBP.getYmax()); // TODO: REMOVE
 }
 
 //______________________________________________________________________________
@@ -239,8 +235,6 @@ void Clusterizer::makeCluster(const PreClustersDE::BP& pcBP, const PreClustersDE
         x3[iplane][ip] += currX2 * dim[iplane][ip];
       }
     }
-    printf("Complex add ch %i (%g, %g - %g, %g) + (%g, %g - %g, %g)\n", detparams::getChamber(deId), pc->area.getXmin(), pc->area.getXmax(), pc->area.getYmin(), pc->area.getYmax(), pcNBP.area[icolumn].getXmin(), pcNBP.area[icolumn].getXmax(), pcNBP.area[icolumn].getYmin(), pcNBP.area[icolumn].getYmax()); // TODO: REMOVE
-
   } // loop on column
 
   double coor[2], sigma[2];
