@@ -179,7 +179,7 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC, bool checkMasked)
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerDeviceDPL>(ggRequest, isMC, checkMasked),
     of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}},
-                {"mid-tracker-keep-all-clusters", of::VariantType::Bool, false, {"Keep all clusters (default is keep only those associated to tracks)"}}}};
+                {"mid-tracker-keep-all-clusters", of::VariantType::Bool, true, {"Keep all clusters (default)"}}}};
 }
 } // namespace mid
 } // namespace o2
