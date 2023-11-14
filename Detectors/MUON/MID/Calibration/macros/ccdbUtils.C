@@ -33,14 +33,14 @@ const std::string BadChannelCCDBPath = "MID/Calib/BadChannels";
 /// @param ccdbUrl CCDB url
 /// @param timestamp Timestamp
 /// @param verbose True for verbose output
-void queryBadChannels(const char* ccdbUrl, long timestamp, bool verbose)
+void queryBadChannels(const char* ccdbUrl, long timestamp, bool verbose, const std::string path)
 {
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> metadata;
-  auto* badChannels = api.retrieveFromTFileAny<std::vector<o2::mid::ColumnData>>(BadChannelCCDBPath.c_str(), metadata, timestamp);
+  auto* badChannels = api.retrieveFromTFileAny<std::vector<o2::mid::ColumnData>>(path.c_str(), metadata, timestamp);
   if (!badChannels) {
-    std::cout << "Error: cannot find " << BadChannelCCDBPath << " in " << ccdbUrl << std::endl;
+    std::cout << "Error: cannot find " << path << " in " << ccdbUrl << std::endl;
     return;
   }
   std::cout << "number of bad channels = " << badChannels->size() << std::endl;
@@ -89,18 +89,19 @@ void writeDCSMasks(const char* ccdbUrl, long timestamp, const char* outFilename 
   outFile.close();
 }
 
-/// @brief Uploads the list of bad channels provided
+/// @brief Uploads the list of channels provided
 /// @param ccdbUrl CCDB url
 /// @param timestamp Timestamp
 /// @param badChannels List of bad channels. Default is no bad channel
-void uploadBadChannels(const char* ccdbUrl, long timestamp, std::vector<o2::mid::ColumnData> badChannels = {})
+/// @param path Calibration object path
+void uploadBadChannels(const char* ccdbUrl, long timestamp, const std::string path, std::vector<o2::mid::ColumnData> channels = {})
 {
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
-  std::cout << "storing default MID bad channels (valid from " << timestamp << ") to " << BadChannelCCDBPath << "\n";
+  std::cout << "Storing MID problematic channels (valid from " << timestamp << ") to " << path << "\n";
 
-  api.storeAsTFileAny(&badChannels, BadChannelCCDBPath, md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  api.storeAsTFileAny(&channels, path, md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 }
 
 /// @brief Reads the DCS masks from a file
@@ -171,7 +172,41 @@ void uploadBadChannelsFromDCSMask(const char* filename, long timestamp, const ch
       std::cout << col << std::endl;
     }
   }
-  uploadBadChannels(ccdbUrl, timestamp, badChannels);
+  uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath, badChannels);
+}
+
+/// @brief Make default fake dead channels
+/// @return Default fake dead channels
+std::vector<o2::mid::ColumnData> makeDefaultFakeDeadChannels()
+{
+  std::vector<o2::mid::ColumnData> fakeDeads;
+  // fakeDeads.push_back({0, 3, 0x81, 0, 0, 0, 0});    // Diff => 40; X1
+  // fakeDeads.push_back({6, 5, 0, 0x2a00, 0, 0, 0});  // Diff => 6c; X1
+  // fakeDeads.push_back({7, 5, 0, 0x28ff, 0, 0, 0});  // Diff => 6e; X1
+  // fakeDeads.push_back({9, 5, 0, 0, 0, 0, 0x2});     // Diff => 60; Y2
+  fakeDeads.push_back({10, 2, 0, 0, 0, 0, 0xe0});   // 31; Y2;  5,6,7
+  fakeDeads.push_back({10, 4, 0x905e, 0, 0, 0, 0}); // 51; X2;  1,2,3,4,6,12,15
+  fakeDeads.push_back({14, 5, 0, 0, 0, 0, 0x80});   // 69; Y2;  7
+  fakeDeads.push_back({16, 2, 0, 0, 0, 0, 0x80});   // 2c; Y2;  7 (0xa0)
+  // fakeDeads.push_back({16, 3, 0, 0x300, 0, 0, 0});  // Diff => 4e; X2
+  fakeDeads.push_back({25, 1, 0, 0, 0, 0, 0xa}); // 24; Y3;  1,3 (0x63)
+  // fakeDeads.push_back({34, 2, 0, 0, 0, 0, 0xa0}); // Diff => 2c; Y4
+  // fakeDeads.push_back({43, 4, 0, 0, 0, 0, 0x20}); // Diff => dd; Y1
+  // fakeDeads.push_back({43, 5, 0, 0xf3, 0, 0, 0}); // Diff => ee; X1
+  // fakeDeads.push_back({44, 3, 0, 0, 0, 0, 0x2});  // Diff => cf; Y1
+  // fakeDeads.push_back({44, 6, 0, 0, 0, 0, 0x7});  // Diff => f8; Y1
+  fakeDeads.push_back({46, 1, 0, 0, 0, 0, 0xc0}); // 91; Y2;  6,7
+  fakeDeads.push_back({46, 2, 0, 0, 0, 0, 0xe0}); // b1; Y2;  5,6,7
+  fakeDeads.push_back({46, 3, 0, 0, 0, 0, 0xc0}); // c1; Y2;  6,7
+  fakeDeads.push_back({46, 4, 0, 0, 0, 0, 0xe8}); // d1; Y2;  3,5,6,7 (0x60)
+  fakeDeads.push_back({46, 5, 0, 0, 0, 0, 0x60}); // e1; Y2;  5,6
+  fakeDeads.push_back({47, 3, 0x5d, 0, 0, 0, 0}); // c3; X2;  0,2,3,4,6 (0x15)
+  fakeDeads.push_back({47, 5, 0x1, 0, 0, 0, 0});  // e3; X2;  0 (none)
+  fakeDeads.push_back({52, 2, 0, 0, 0, 0, 0x70}); // ac; Y2;  4,5,6 (0xf0)
+  // fakeDeads.push_back({52, 3, 0, 0, 0, 0, 0x80}); // Diff => cd; Y2
+  // fakeDeads.push_back({68, 5, 0, 0, 0, 0, 0xe0}); // Diff => e9; Y4
+
+  return fakeDeads;
 }
 
 /// @brief Utility to query or upload bad channels and masks from/to the CCDB
@@ -185,17 +220,23 @@ void ccdbUtils(const char* what, long timestamp = 0, const char* inFilename = "m
     timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   }
 
-  std::vector<std::string> whats = {"querybad", "uploadbad", "querymasks", "writemasks", "uploadbadfrommasks"};
+  std::vector<std::string> whats = {"querybad", "uploadbad", "queryfake", "uploadfake", "querymasks", "writemasks", "uploadbadfrommasks"};
+
+  const std::string fakeDeadChannelCCDBPath = "MID/Calib/FakeDeadChannels";
 
   if (what == whats[0]) {
-    queryBadChannels(ccdbUrl, timestamp, verbose);
+    queryBadChannels(ccdbUrl, timestamp, verbose, BadChannelCCDBPath);
   } else if (what == whats[1]) {
-    uploadBadChannels(ccdbUrl, timestamp);
+    uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath);
   } else if (what == whats[2]) {
-    queryDCSMasks(ccdbUrl, timestamp, verbose);
+    queryBadChannels(ccdbUrl, timestamp, verbose, fakeDeadChannelCCDBPath);
   } else if (what == whats[3]) {
-    writeDCSMasks(ccdbUrl, timestamp);
+    uploadBadChannels(ccdbUrl, timestamp, fakeDeadChannelCCDBPath, makeDefaultFakeDeadChannels());
   } else if (what == whats[4]) {
+    queryDCSMasks(ccdbUrl, timestamp, verbose);
+  } else if (what == whats[5]) {
+    writeDCSMasks(ccdbUrl, timestamp);
+  } else if (what == whats[6]) {
     uploadBadChannelsFromDCSMask(inFilename, timestamp, ccdbUrl, verbose);
   } else {
     std::cout << "Unimplemented option chosen " << what << std::endl;
