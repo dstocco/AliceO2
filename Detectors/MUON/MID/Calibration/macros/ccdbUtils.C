@@ -45,6 +45,7 @@ void queryBadChannels(const char* ccdbUrl, long timestamp, bool verbose, const s
   }
   std::cout << "number of bad channels = " << badChannels->size() << std::endl;
   if (verbose) {
+    std::sort(badChannels->begin(), badChannels->end(), [](const o2::mid::ColumnData& c1, const o2::mid::ColumnData& c2) { return o2::mid::getColumnDataUniqueId(c1.deId, c1.columnId) < o2::mid::getColumnDataUniqueId(c2.deId, c2.columnId); });
     for (const auto& badChannel : *badChannels) {
       std::cout << badChannel << "\n";
     }
@@ -180,31 +181,31 @@ void uploadBadChannelsFromDCSMask(const char* filename, long timestamp, const ch
 std::vector<o2::mid::ColumnData> makeDefaultFakeDeadChannels()
 {
   std::vector<o2::mid::ColumnData> fakeDeads;
-  // fakeDeads.push_back({0, 3, 0x81, 0, 0, 0, 0});    // Diff => 40; X1
-  // fakeDeads.push_back({6, 5, 0, 0x2a00, 0, 0, 0});  // Diff => 6c; X1
-  // fakeDeads.push_back({7, 5, 0, 0x28ff, 0, 0, 0});  // Diff => 6e; X1
-  // fakeDeads.push_back({9, 5, 0, 0, 0, 0, 0x2});     // Diff => 60; Y2
-  fakeDeads.push_back({10, 2, 0, 0, 0, 0, 0xe0});   // 31; Y2;  5,6,7
-  fakeDeads.push_back({10, 4, 0x905e, 0, 0, 0, 0}); // 51; X2;  1,2,3,4,6,12,15
-  fakeDeads.push_back({14, 5, 0, 0, 0, 0, 0x80});   // 69; Y2;  7
-  fakeDeads.push_back({16, 2, 0, 0, 0, 0, 0x80});   // 2c; Y2;  7 (0xa0)
-  // fakeDeads.push_back({16, 3, 0, 0x300, 0, 0, 0});  // Diff => 4e; X2
-  fakeDeads.push_back({25, 1, 0, 0, 0, 0, 0xa}); // 24; Y3;  1,3 (0x63)
-  // fakeDeads.push_back({34, 2, 0, 0, 0, 0, 0xa0}); // Diff => 2c; Y4
-  // fakeDeads.push_back({43, 4, 0, 0, 0, 0, 0x20}); // Diff => dd; Y1
-  // fakeDeads.push_back({43, 5, 0, 0xf3, 0, 0, 0}); // Diff => ee; X1
-  // fakeDeads.push_back({44, 3, 0, 0, 0, 0, 0x2});  // Diff => cf; Y1
-  // fakeDeads.push_back({44, 6, 0, 0, 0, 0, 0x7});  // Diff => f8; Y1
-  fakeDeads.push_back({46, 1, 0, 0, 0, 0, 0xc0}); // 91; Y2;  6,7
-  fakeDeads.push_back({46, 2, 0, 0, 0, 0, 0xe0}); // b1; Y2;  5,6,7
-  fakeDeads.push_back({46, 3, 0, 0, 0, 0, 0xc0}); // c1; Y2;  6,7
-  fakeDeads.push_back({46, 4, 0, 0, 0, 0, 0xe8}); // d1; Y2;  3,5,6,7 (0x60)
-  fakeDeads.push_back({46, 5, 0, 0, 0, 0, 0x60}); // e1; Y2;  5,6
-  fakeDeads.push_back({47, 3, 0x5d, 0, 0, 0, 0}); // c3; X2;  0,2,3,4,6 (0x15)
-  fakeDeads.push_back({47, 5, 0x1, 0, 0, 0, 0});  // e3; X2;  0 (none)
-  fakeDeads.push_back({52, 2, 0, 0, 0, 0, 0x70}); // ac; Y2;  4,5,6 (0xf0)
-  // fakeDeads.push_back({52, 3, 0, 0, 0, 0, 0x80}); // Diff => cd; Y2
-  // fakeDeads.push_back({68, 5, 0, 0, 0, 0, 0xe0}); // Diff => e9; Y4
+  fakeDeads.push_back({0, 3, 0x1, 0x0, 0x0, 0x0, 0x0}); // 40; X1 (data only)
+  // fakeDeads.push_back({6, 5, 0, 0x2a00, 0, 0, 0});  // 6c; X1 (data only)
+  fakeDeads.push_back({7, 5, 0x0, 0x28fe, 0x0, 0x0, 0x0});  // 6e; X1 (data only)
+  fakeDeads.push_back({9, 5, 0x0, 0x0, 0x0, 0x0, 0x2});     // 60; Y2 (data only)
+  fakeDeads.push_back({10, 2, 0x0, 0x0, 0x0, 0x0, 0xe0});   // 31; Y2;  5,6,7
+  fakeDeads.push_back({10, 4, 0x905e, 0x0, 0x0, 0x0, 0x0}); // 51; X2;  1,2,3,4,6,12,15
+  fakeDeads.push_back({14, 5, 0x0, 0x0, 0x0, 0x0, 0x80});   // 69; Y2;  7
+  fakeDeads.push_back({16, 2, 0x0, 0x0, 0x0, 0x0, 0x80});   // 2c; Y2;  7
+  fakeDeads.push_back({16, 3, 0x0, 0x300, 0x0, 0x0, 0x0});  // 4e; X2 (data only)
+  fakeDeads.push_back({25, 1, 0x0, 0x0, 0x0, 0x0, 0x63});   // 24; Y3;  1,3 (expected: 0xa)
+  fakeDeads.push_back({34, 2, 0x0, 0x0, 0x0, 0x0, 0x20});   // 2c; Y4 (data only)
+  // fakeDeads.push_back({43, 4, 0, 0, 0, 0, 0x20}); // dd; Y1 (data only)
+  fakeDeads.push_back({43, 5, 0x0, 0xf3, 0x0, 0x0, 0x0}); // ee; X1 (data only)
+  fakeDeads.push_back({44, 3, 0x0, 0x0, 0x0, 0x0, 0x2});  // cf; Y1 (data only)
+  fakeDeads.push_back({44, 6, 0x0, 0x0, 0x0, 0x0, 0x2});  // f8; Y1 (data only)
+  fakeDeads.push_back({46, 1, 0x0, 0x0, 0x0, 0x0, 0xc0}); // 91; Y2;  6,7
+  fakeDeads.push_back({46, 2, 0x0, 0x0, 0x0, 0x0, 0xe0}); // b1; Y2;  5,6,7
+  fakeDeads.push_back({46, 3, 0x0, 0x0, 0x0, 0x0, 0xc0}); // c1; Y2;  6,7
+  fakeDeads.push_back({46, 4, 0x0, 0x0, 0x0, 0x0, 0x60}); // d1; Y2;  3,5,6,7 (0x60)
+  fakeDeads.push_back({46, 5, 0x0, 0x0, 0x0, 0x0, 0x60}); // e1; Y2;  5,6
+  fakeDeads.push_back({47, 3, 0x5d, 0x0, 0x0, 0x0, 0x0}); // c3; X2;  0,2,3,4,6 (0x15)
+  fakeDeads.push_back({47, 5, 0x1, 0, 0, 0, 0});          // e3; X2;  0 (expected only)
+  fakeDeads.push_back({52, 2, 0x0, 0x0, 0x0, 0x0, 0xf0}); // ac; Y2;  4,5,6 (0xf0)
+  fakeDeads.push_back({52, 3, 0x0, 0x0, 0x0, 0x0, 0x80}); // cd; Y2 (data only)
+  fakeDeads.push_back({68, 5, 0x0, 0x0, 0x0, 0x0, 0xe0}); // e9; Y4 (data only)
 
   return fakeDeads;
 }
