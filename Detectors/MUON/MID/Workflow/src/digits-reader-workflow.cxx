@@ -37,7 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
-    {"disable-zero-suppression", VariantType::Bool, true, {"Do not apply zero suppression. Option is disabled since ZS cannot be applied right now (see ROBoradConfigHanler)"}},
+    {"disable-zero-suppression", VariantType::Bool, true, {"Do not apply zero suppression. Option is disabled since ZS cannot be applied right now (see ROBoardConfigHandler)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
