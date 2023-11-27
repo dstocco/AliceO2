@@ -128,6 +128,11 @@ std::vector<Hit> generateHits(size_t nHits, int deId, const Mapping& mapping, co
       continue;
     }
     math_utils::Point3D<float> globalPoint = geoTrans.localToGlobal(deId, point);
+    // Further check to prevent numerical precision issues
+    math_utils::Point3D<double> localPoint = geoTrans.globalToLocal(deId, (double)globalPoint.x(), (double)globalPoint.y(), (double)globalPoint.z());
+    if (!mapping.stripByPosition(localPoint.x(), localPoint.y(), 0, deId, false).isValid()) {
+      continue;
+    }
     hits.emplace_back(hits.size(), deId, globalPoint, globalPoint);
   }
   return hits;
