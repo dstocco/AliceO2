@@ -67,7 +67,7 @@ class Digitizer
   void addStrip(const Mapping::MpStripIndex& stripIndex, int cathode, int deId);
   bool addBPStrips(double xPos, double yPos, int deId, double prob, double xOffset);
   bool addNeighbours(const Mapping::MpStripIndex& stripIndex, int cathode, int deId, double prob,
-                     const std::array<double, 2>& initialDist, double xOffset = 0.);
+                     const std::array<double, 2>& initialDist);
   bool hitToDigits(const Hit& hit);
   bool getLabelLimits(int cathode, const ColumnData& col, int& firstStrip, int& lastStrip) const;
 

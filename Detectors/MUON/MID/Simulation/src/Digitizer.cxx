@@ -46,9 +46,10 @@ bool Digitizer::addBPStrips(double xPos, double yPos, int deId, double prob, dou
   /// Checks the BP strips in the neighbour columns
 
   // The offset is used to check the strips in the bending plane
-  // placed in the board close to the fired one
-  // If the response says that the strip is too far away, there is no need to check further
-  if (!mResponse.isFired(prob, std::abs(xOffset), 0, deId)) {
+  // placed in the column close to the fired one
+  // For this case, we switch off the cross talk parameter,
+  // so that the function goes to 0 at infinity.
+  if (!mResponse.isFired(prob, std::abs(xOffset), 1, deId, false)) {
     return false;
   }
 
@@ -60,23 +61,22 @@ bool Digitizer::addBPStrips(double xPos, double yPos, int deId, double prob, dou
   addStrip(stripIndex, 0, deId);
   MpArea area = mMapping.stripByLocation(stripIndex.strip, 0, stripIndex.line, stripIndex.column, deId);
   std::array<double, 2> dist = {area.getYmax() - yPos, yPos - area.getYmin()};
-  addNeighbours(stripIndex, 0, deId, prob, dist, xOffset);
+  addNeighbours(stripIndex, 0, deId, prob, dist);
   return true;
 }
 
 //______________________________________________________________________________
 bool Digitizer::addNeighbours(const Mapping::MpStripIndex& stripIndex, int cathode, int deId, double prob,
-                              const std::array<double, 2>& initialDist, double xOffset)
+                              const std::array<double, 2>& initialDist)
 {
   /// Add neighbour strips
 
-  double xOffset2 = xOffset * xOffset;
   for (int idir = 0; idir < 2; ++idir) {
     // Search for neighbours in the two directions
     // up and down for the BP, right and left for the NBP
     double dist = initialDist[idir];
     Mapping::MpStripIndex neigh = mMapping.nextStrip(stripIndex, cathode, deId, idir);
-    while (neigh.isValid() && mResponse.isFired(prob, std::sqrt(dist * dist + xOffset2), cathode, deId)) {
+    while (neigh.isValid() && mResponse.isFired(prob, dist, cathode, deId)) {
       addStrip(neigh, cathode, deId);
       dist += mMapping.getStripSize(neigh.strip, cathode, neigh.column, deId);
       neigh = mMapping.nextStrip(neigh, cathode, deId, idir);
