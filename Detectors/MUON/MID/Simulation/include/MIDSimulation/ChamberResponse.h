@@ -17,6 +17,7 @@
 #ifndef O2_MID_CHAMBERRESPONSE_H
 #define O2_MID_CHAMBERRESPONSE_H
 
+#include <limits>
 #include <unordered_map>
 
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -70,7 +71,7 @@ class ChamberResponse
 
   /// @brief Sets the HV from the DCS data points
   /// @param dpMap Map with DCS data points
-  inline void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap) { mHV.setHV(dpMap); }
+  inline void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap, uint64_t startTS = 0, uint64_t endTS = std::numeric_limits<uint64_t>::max()) { mHV.setHV(dpMap, startTS, endTS); }
 
  private:
   ChamberResponseParams mParams; ///< Chamber response parameters

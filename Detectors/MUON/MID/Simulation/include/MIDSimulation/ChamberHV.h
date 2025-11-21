@@ -17,6 +17,7 @@
 #define O2_MID_CHAMBERHV_H
 
 #include <array>
+#include <limits>
 #include <vector>
 #include <unordered_map>
 
@@ -43,7 +44,7 @@ class ChamberHV
 
   /// \brief Sets the HV from the DCS data points
   /// \param dpMap Map with DCS data points
-  void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap);
+  void setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap, uint64_t startTS = 0, uint64_t endTS = std::numeric_limits<uint64_t>::max());
 
  private:
   std::array<double, detparams::NDetectionElements> mHV; ///< High voltage values

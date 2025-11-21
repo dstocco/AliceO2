@@ -41,23 +41,27 @@ std::vector<std::pair<uint64_t, double>> getValues(const std::unordered_map<o2::
   return values;
 }
 
-double getAverage(std::vector<std::pair<uint64_t, double>>& values)
+double getAverage(std::vector<std::pair<uint64_t, double>>& values, uint64_t startTS, uint64_t endTS)
 {
   double num = 0., den = 0.;
   for (size_t ival = 1; ival < values.size(); ++ival) {
-    double delta = values[ival].first - values[ival - 1].first;
+    auto ts = values[ival - 1].first;
+    if (ts < startTS || ts > endTS) {
+      continue;
+    }
+    double delta = values[ival].first - ts;
     num += values[ival - 1].second * delta;
     den += delta;
   }
   return (den > 0.) ? num / den : num;
 }
 
-void ChamberHV::setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap)
+void ChamberHV::setHV(const std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>& dpMap, uint64_t startTS, uint64_t endTS)
 {
   for (int deId = 0; deId < detparams::NDetectionElements; ++deId) {
     auto alias = detElemId2DCSAlias(deId, dcs::MeasurementType::HV_V);
     auto values = getValues(dpMap, alias);
-    auto hv = getAverage(values);
+    auto hv = getAverage(values, startTS, endTS);
     setHV(deId, hv);
   }
 }

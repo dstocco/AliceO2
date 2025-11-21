@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "MIDDigitizerSpec.h"
+
+#include <limits>
 #include "TChain.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -64,7 +66,8 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     if (matcher == ConcreteDataMatcher(header::gDataOriginMID, "CHAMBER_HV", 0)) {
       auto* dpMap = static_cast<DPMAP*>(obj);
-      mDigitizer->getChamberResponse().setHV(*dpMap);
+      LOG(debug) << "Setting HV with startTS: " << mStartTS << " endTS: " << mEndTS;
+      mDigitizer->getChamberResponse().setHV(*dpMap, mStartTS, mEndTS);
       return;
     }
   }
@@ -79,6 +82,8 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    mStartTS = context->getGRP().getTimeStart();
+    mEndTS = context->getGRP().getTimeEnd();
     // Triggers reading from CCDB
     pc.inputs().get<std::vector<ChEffCounter>*>("mid_ch_eff");
     pc.inputs().get<DPMAP*>("mid_ch_hv");
@@ -148,6 +153,8 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
   ElectronicsDelay mElectronicsDelay;                                                // Electronics delay
+  uint64_t mStartTS = 0;                                                             // Start timestamp of run
+  uint64_t mEndTS = std::numeric_limits<uint64_t>::max();                            // End timestamp of run
 };
 
 o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)
