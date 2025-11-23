@@ -38,17 +38,22 @@ ChamberResponse::ChamberResponse(const ChamberResponseParams& params, const Cham
 }
 
 //______________________________________________________________________________
-double ChamberResponse::getFiredProbability(double distance, int cathode, int deId, double theta) const
+double ChamberResponse::getFiredProbability(double distance, int cathode, int deId, bool hasCrossTalk, double theta) const
 {
   /// Get fired probability
 
   // Need to convert the distance from cm to mm
   double distMM = distance * 10.;
-  double parA = mParams.getParA(mHV.getHV(deId));
+  double hv = mHV.getHV(deId);
+  double parA = mParams.getParA(hv);
   double parB = mParams.getParB(cathode, deId);
-  double parC = mParams.getParC(mHV.getHV(deId));
   double costheta = std::cos(theta);
-  return (parC + parA / (parA + costheta * std::pow(distMM, parB))) / (1 + parC);
+  double core = parA / (parA + costheta * std::pow(distMM, parB));
+  if (hasCrossTalk) {
+    double parC = mParams.getParC(hv);
+    return (parC + core) / (1 + parC);
+  }
+  return core;
 }
 
 //______________________________________________________________________________
@@ -76,7 +81,7 @@ double ChamberResponse::firedProbabilityFunction(double* var, double* par)
   mParams.setParA(par[4], par[5]);
   mParams.setParC(par[6], par[7]);
 
-  return getFiredProbability(var[0], cathode, deId, par[2]);
+  return getFiredProbability(var[0], cathode, deId, true, par[2]);
 }
 
 //______________________________________________________________________________

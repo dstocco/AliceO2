@@ -44,20 +44,22 @@ class ChamberResponse
   /// @param distance Distance between the hit and the current strip
   /// @param cathode Anode or cathode
   /// @param deId Detection element ID
+  /// @param hasCrossTalk If false, allows the function to go to 0 at infinity (default: true)
   /// @param theta Particle impact angle
   /// @return true if the strip is fired
-  inline bool isFired(double prob, double distance, int cathode, int deId, double theta = 0.) const
+  inline bool isFired(double prob, double distance, int cathode, int deId, bool hasCrossTalk = true, double theta = 0.) const
   {
-    return (prob < getFiredProbability(distance, cathode, deId, theta));
+    return (prob < getFiredProbability(distance, cathode, deId, hasCrossTalk, theta));
   }
 
   /// @brief Returns the fired probability
   /// @param distance Distance between the hit and the current strip
   /// @param cathode Anode or cathode
   /// @param deId Detection element ID
+  /// @param hasCrossTalk If false, allows the function to go to 0 at infinity (default: true)
   /// @param theta Particle impact angle
   /// @return The probability that the strip is fired
-  double getFiredProbability(double distance, int cathode, int deId, double theta = 0.) const;
+  double getFiredProbability(double distance, int cathode, int deId, bool hasCrossTalk = true, double theta = 0.) const;
 
   /// @brief Fired probability distribution
   /// @param var Pointer with function variables
